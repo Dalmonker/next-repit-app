@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme {
+  --font-sans: var(--font-days-one);
+  --font-days: var(--font-days-one);
+
+  --breakpoint-miniSm: 360px;
+  --breakpoint-sm: 480px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 960px;
+  --breakpoint-xl: 1280px;
+
+  --color-white: #FFFFFF;
+  --color-black: #303030;
+  --color-green: #D5F861;
+  --color-transparent: transparent;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-days);
+}
+
+.container {
+  max-width: 1216px;
+  margin: 0 auto;
+}
