@@ -1,0 +1,35 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { verifySession, SESSION_COOKIE } from "@/lib/auth";
+
+export async function proxy(request: NextRequest) {
+    const token = request.cookies.get(SESSION_COOKIE)?.value;
+    const session = token ? await verifySession(token) : null;
+
+    const { pathname } = request.nextUrl;
+
+    // Защищённые пути
+    const protectedPaths = ["/dashboard", "/onboarding"];
+    const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
+
+    // Если не авторизован
+    if (isProtected && !session) {
+        return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    // Если авторизован
+    if (pathname === "/login" && session) {
+        if (!session.role) {
+            return NextResponse.redirect(
+                new URL("/onboarding/role", request.url),
+            );
+        }
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+
+    return NextResponse.next();
+}
+
+export const config = {
+    matcher: ["/dashboard/:path*", "/login", "/onboarding/:path*"],
+};
