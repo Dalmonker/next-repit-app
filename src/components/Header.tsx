@@ -1,12 +1,12 @@
 import Link from "next/link";
 import Image from "next/image";
-import logoImage from "@/assets/images/logo.webp";
+import { Svg } from "@/components/Svg";
 
 export default function Header() {
     return (
         <header className="w-full py-6 px-4 md:px-8 flex items-center justify-between max-w-7xl mx-auto">
-            <Link href="/" className="flex items-center gap-2">
-                <Image src={logoImage} alt="logo" priority />
+            <Link href="/login" className="flex items-center gap-2">
+                <Svg iconId="logo" />
             </Link>
 
             <nav className="hidden md:flex items-center gap-8 text-gray-700 font-medium">
