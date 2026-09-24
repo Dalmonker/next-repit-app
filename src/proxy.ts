@@ -8,6 +8,27 @@ export async function proxy(request: NextRequest) {
 
     const { pathname } = request.nextUrl;
 
+    // ============================================================
+    // АДМИНКА — отдельная логика
+    // ============================================================
+    if (pathname.startsWith("/admin")) {
+        // Не авторизован → на логин
+        if (!session) {
+            return NextResponse.redirect(new URL("/login", request.url));
+        }
+
+        // Не админ → 404 (не палим существование)
+        if (session.role !== "admin") {
+            return NextResponse.rewrite(new URL("/404", request.url));
+        }
+
+        // Админ — пропускаем
+        return NextResponse.next();
+    }
+
+    // ============================================================
+    // ДАШБОРД И ОНБОРДИНГ — прежняя логика
+    // ============================================================
     const protectedPaths = ["/dashboard", "/onboarding"];
     const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
 
@@ -45,5 +66,10 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/dashboard/:path*", "/login", "/onboarding/:path*"],
+    matcher: [
+        "/admin/:path*",
+        "/dashboard/:path*",
+        "/login",
+        "/onboarding/:path*",
+    ],
 };

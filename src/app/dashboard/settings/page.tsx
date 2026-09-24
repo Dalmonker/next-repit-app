@@ -13,5 +13,11 @@ export default async function SettingsPage() {
         redirect("/onboarding/role");
     }
 
-    return <SettingsClient email={session.email} role={session.role} />;
+    return (
+        <SettingsClient
+            email={session.email}
+            role={session.role}
+            userId={session.userId}
+        />
+    );
 }

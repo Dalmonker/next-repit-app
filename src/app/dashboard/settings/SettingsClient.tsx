@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 type Props = {
     email: string;
     role: "student" | "parent" | "tutor";
+    userId: number;
 };
 
 type Profile = {
@@ -26,7 +27,7 @@ const EMPTY: Profile = {
     bio: "",
 };
 
-export default function SettingsClient({ email, role }: Props) {
+export default function SettingsClient({ email, role, userId }: Props) {
     const [profile, setProfile] = useState<Profile>(EMPTY);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -233,7 +234,7 @@ export default function SettingsClient({ email, role }: Props) {
                     {saving ? "Сохранение..." : "Сохранить"}
                 </button>
             </form>
-            {role === "tutor" && <TutorSettings />}
+            {role === "tutor" && <TutorSettings userId={userId} />}
             {role === "student" && <StudentSettings />}
         </>
     );
