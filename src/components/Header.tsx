@@ -7,7 +7,11 @@ export default function Header() {
         <header className="pt-[40px]">
             <div className="container flex items-center justify-between">
                 <Link href="/" className="flex items-center gap-2">
-                    <Svg className="w-[74px] h-[42px]" iconId="logo" />
+                    <Svg
+                        className="w-[74px] h-[42px]"
+                        iconId="logo"
+                        color="#37324C"
+                    />
                 </Link>
 
                 <nav className="hidden md:flex items-center gap-8 text-gray-700 font-medium">

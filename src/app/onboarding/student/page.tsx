@@ -1,17 +1,12 @@
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import RoleClient from "./RoleClient";
 
-export default async function RolePage() {
+export default async function StudentPage() {
     const session = await getSession();
 
     if (!session) {
         redirect("/login");
     }
 
-    if (session.role) {
-        redirect("/dashboard");
-    }
-
-    return <RoleClient />;
+    redirect("/dashboard");
 }

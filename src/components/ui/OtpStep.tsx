@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { Svg } from "@/components/Svg";
 
@@ -9,48 +9,29 @@ import parrotImage from "@/assets/images/login/parrot-tablet.webp";
 type Props = {
     email: string;
     onVerify: (code: string) => Promise<boolean>;
-    onResend: () => Promise<boolean>;
     onBack: () => void;
     loading: boolean;
     error: string;
+    secondsLeft: number;
+    resending: boolean;
+    onResend: () => Promise<boolean>;
 };
-
-const RESEND_SECONDS = 49;
 
 export default function OtpStep({
     email,
     onVerify,
-    onResend,
     onBack,
     loading,
     error,
+    secondsLeft,
+    resending,
+    onResend,
 }: Props) {
     const [code, setCode] = useState("");
-    const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
-    const [resending, setResending] = useState(false);
-
-    // Таймер
-    useEffect(() => {
-        if (secondsLeft <= 0) return;
-        const t = setInterval(() => {
-            setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
-        }, 1000);
-        return () => clearInterval(t);
-    }, [secondsLeft]);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         await onVerify(code);
-    }
-
-    async function handleResend() {
-        setResending(true);
-        const ok = await onResend();
-        setResending(false);
-        if (ok) {
-            setSecondsLeft(RESEND_SECONDS);
-            setCode("");
-        }
     }
 
     const formatTime = (s: number) => {
@@ -59,9 +40,17 @@ export default function OtpStep({
         return `${m}:${sec.toString().padStart(2, "0")}`;
     };
 
+    // Что писать на кнопке
+    const buttonText =
+        secondsLeft > 0
+            ? `Получить новый код через ${formatTime(secondsLeft)}`
+            : "Получить новый код";
+
+    // Кнопка активна только когда таймер дошёл до 0 и не идёт отправка
+    const canResend = secondsLeft === 0 && !resending;
+
     return (
         <div className="w-full rounded-[24px] bg-violet relative">
-            {/* Верхняя зона — та же самая, что в LoginForm */}
             <div className="bg-violet rounded-t-[24px] h-[200px] w-full relative">
                 <div className="p-[40px] relative z-10">
                     <Svg iconId="logo" className="w-[74px] h-[42px]" />
@@ -81,11 +70,10 @@ export default function OtpStep({
             {/* Нижняя зона — форма кода */}
             <div className="bg-white rounded-[24px] p-[40px]">
                 <h1 className="font-days text-[32px] text-black text-center mb-[16px]">
-                    Введите код
+                    Введите код подтверждения
                 </h1>
                 <p className="text-center text-darkGray mb-[24px] text-[15px]">
-                    Мы отправили его на почту
-                    <br />
+                    Мы отправили его на почту{" "}
                     <b className="text-black">{email}</b>
                 </p>
 
@@ -101,40 +89,30 @@ export default function OtpStep({
                         placeholder="123456"
                         required
                         autoFocus
-                        className="w-full px-[21px] pt-[10px] pb-[13px] rounded-full border border-whiteTxt bg-white placeholder:text-clue text-black focus:border-green outline-none transition-all text-center text-2xl tracking-widest"
+                        className="w-full px-[21px] pt-[5px] pb-[5px] rounded-full border border-whiteTxt bg-white placeholder:text-clue text-black focus:border-green outline-none transition-all text-center text-2xl tracking-widest"
                     />
 
                     {error && <p className="text-red text-sm mt-3">{error}</p>}
 
-                    <button
-                        type="submit"
-                        disabled={loading || code.length !== 6}
-                        className="cursor-pointer w-full bg-green text-black pt-[10px] pb-[12px] rounded-full hover:bg-[#c2e055] transition mt-4 disabled:opacity-50"
-                    >
-                        {loading ? "Проверка..." : "Подтвердить"}
-                    </button>
-
-                    <div className="text-center mt-4">
-                        {secondsLeft > 0 ? (
-                            <p className="text-darkGray text-sm">
-                                Получить новый код через{" "}
-                                <b className="text-black">
-                                    {formatTime(secondsLeft)}
-                                </b>
-                            </p>
-                        ) : (
-                            <button
-                                type="button"
-                                onClick={handleResend}
-                                disabled={resending}
-                                className="text-blue hover:underline text-sm cursor-pointer disabled:opacity-50"
-                            >
-                                {resending
-                                    ? "Отправка..."
-                                    : "Получить новый код"}
-                            </button>
-                        )}
-                    </div>
+                    {/* Одна кнопка: и "Подтвердить", и "Получить новый код" */}
+                    {code.length === 6 ? (
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="cursor-pointer w-full bg-green text-black pt-[10px] pb-[12px] rounded-full hover:bg-[#c2e055] transition mt-4 disabled:opacity-50"
+                        >
+                            {loading ? "Проверка..." : "Подтвердить"}
+                        </button>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={onResend}
+                            disabled={!canResend}
+                            className="w-full bg-green text-black pt-[10px] pb-[12px] rounded-full transition mt-4 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-[#c2e055]"
+                        >
+                            {resending ? "Отправка..." : buttonText}
+                        </button>
+                    )}
 
                     <button
                         type="button"
