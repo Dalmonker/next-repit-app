@@ -9,8 +9,8 @@ type Role = (typeof VALID_ROLES)[number];
 // Куда редиректить после выбора роли
 const REDIRECT_BY_ROLE: Record<Role, string> = {
     student: "/onboarding/student",
-    tutor: "/onboarding/tutor",
-    parent: "/onboarding/parent",
+    tutor: "/dashboard",
+    parent: "/dashboard",
 };
 
 export async function POST(request: Request) {
