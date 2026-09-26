@@ -21,7 +21,7 @@ export default async function FeaturedTutors() {
                 </div>
 
                 {/* Сетка карточек */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[20px] mb-[40px]">
+                <div className="flex gap-[20px] mb-[40px]">
                     {tutors.map((tutor) => (
                         <TutorCard key={tutor.id} tutor={tutor} />
                     ))}

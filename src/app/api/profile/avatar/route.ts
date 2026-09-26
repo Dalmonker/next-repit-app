@@ -4,6 +4,7 @@ import { join, basename } from "path";
 import { randomUUID } from "crypto";
 import pool from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { resetToPendingIfApproved } from "@/lib/tutor-profile";
 
 const MAX_SIZE = 2 * 1024 * 1024; // 2 МБ
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -13,10 +14,8 @@ const AVATAR_PREFIX = "/uploads/avatars/";
 async function deleteOldAvatar(avatarUrl: string | null) {
     if (!avatarUrl) return;
 
-    // Удаляем только свои файлы
     if (!avatarUrl.startsWith(AVATAR_PREFIX)) return;
 
-    // Берём только basename — защита от ../../
     const filename = basename(avatarUrl);
     const filePath = join(
         process.cwd(),
@@ -108,6 +107,11 @@ export async function POST(request: Request) {
             avatarUrl,
             session.userId,
         ]);
+
+        // 5. Если репетитор — сбрасываем в pending (аватар критичен)
+        if (session.role === "tutor") {
+            await resetToPendingIfApproved(session.userId);
+        }
 
         return NextResponse.json({ success: true, avatarUrl });
     } catch (error) {

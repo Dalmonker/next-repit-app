@@ -15,8 +15,8 @@ export default function TutorCard({ tutor }: { tutor: TutorListItem }) {
             href={`/tutors/${tutor.id}`}
             className="group bg-white rounded-[24px] overflow-hidden hover:shadow-lg transition-shadow block"
         >
-            {/* Фото */}
-            <div className="relative w-full h-[280px] bg-violet">
+            {/* Фото + синий фон */}
+            <div className="relative w-[333px] h-[333px] bg-blue">
                 {tutor.avatar_url ? (
                     <Image
                         src={tutor.avatar_url}
@@ -26,49 +26,49 @@ export default function TutorCard({ tutor }: { tutor: TutorListItem }) {
                         sizes="(max-width: 768px) 100vw, 33vw"
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center text-darkGray">
+                    <div className="w-full h-full flex items-center justify-center text-white/60">
                         Нет фото
                     </div>
                 )}
-            </div>
 
-            {/* Контент */}
-            <div className="p-[24px]">
-                {/* Имя */}
-                <h2 className="font-days text-[22px] text-black mb-[8px]">
-                    {fullName}
-                </h2>
-
-                {/* Headline */}
-                {tutor.headline && (
-                    <p className="text-darkGray text-[14px] mb-[12px] line-clamp-2">
-                        {tutor.headline}
-                    </p>
-                )}
-
-                {/* Предметы */}
+                {/* Теги поверх фото, внизу */}
                 {tutor.subjects.length > 0 && (
-                    <div className="flex flex-wrap gap-[6px] mb-[16px]">
+                    <div className="absolute bottom-[16px] left-[16px] right-[16px] flex flex-wrap gap-[6px]">
                         {visibleSubjects.map((s) => (
                             <span
                                 key={s}
-                                className="px-[10px] py-[4px] rounded-full bg-violet text-black text-[12px]"
+                                className="px-[10px] py-[6px] rounded-[8px] bg-white/95 backdrop-blur text-black text-[12px] font-medium"
                             >
                                 {s}
                             </span>
                         ))}
                         {hasMore && (
-                            <span className="px-[10px] py-[4px] rounded-full bg-violet text-darkGray text-[12px]">
-                                ...
+                            <span className="px-[10px] py-[6px] rounded-[8px] bg-white/95 backdrop-blur text-darkGray text-[12px] font-medium">
+                                …
                             </span>
                         )}
                     </div>
+                )}
+            </div>
+
+            {/* Контент */}
+            <div className="p-[20px]">
+                {/* Имя */}
+                <h2 className="font-days text-[24px] text-black mb-[10px] leading-[1.15]">
+                    {fullName}
+                </h2>
+
+                {/* Headline */}
+                {tutor.headline && (
+                    <p className="text-darkGray text-[14px] leading-[1.4] mb-[16px] line-clamp-3 max-w-[333px]">
+                        {tutor.headline}
+                    </p>
                 )}
 
                 {/* Цена и опыт */}
                 <div className="flex items-center justify-between text-[14px]">
                     {tutor.hourly_rate != null && (
-                        <span className="text-black font-medium">
+                        <span className="text-black font-bold">
                             от {tutor.hourly_rate} BYN/час
                         </span>
                     )}

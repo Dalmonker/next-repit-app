@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { getTutorProfile, upsertTutorProfile } from "@/lib/tutor-profile";
+import {
+    getTutorProfile,
+    upsertTutorProfile,
+    hasCriticalTutorChanges,
+    resetToPendingIfApproved,
+} from "@/lib/tutor-profile";
 
 // Разрешённые предметы (те, что в кнопках)
 const PRESET_SUBJECTS = [
@@ -22,6 +27,7 @@ const PRESET_SUBJECTS = [
 
 const MAX_SUBJECTS = 20;
 const MAX_SUBJECT_LENGTH = 50;
+const MAX_HEADLINE_LENGTH = 150;
 const MAX_EDUCATION_LENGTH = 1000;
 const MAX_HOURLY_RATE = 100000;
 
@@ -32,6 +38,7 @@ const MAX_HOURLY_RATE = 100000;
 function validateTutor(body: any) {
     const result: {
         subjects?: string[];
+        headline?: string;
         hourly_rate?: number;
         experience_years?: number;
         education?: string;
@@ -73,6 +80,18 @@ function validateTutor(body: any) {
         }
 
         result.subjects = cleaned;
+    }
+
+    // --- Headline ---
+    if (body.headline !== undefined) {
+        const s = String(body.headline).trim();
+        if (s.length > MAX_HEADLINE_LENGTH) {
+            return {
+                ok: false as const,
+                error: `Короткое описание макс. ${MAX_HEADLINE_LENGTH} символов`,
+            };
+        }
+        result.headline = s;
     }
 
     if (
@@ -142,9 +161,11 @@ export async function GET() {
             return NextResponse.json({
                 status: null,
                 subjects: [],
+                headline: null,
                 hourly_rate: null,
                 experience_years: null,
                 education: null,
+                rejection_reason: null,
                 preset_subjects: PRESET_SUBJECTS,
             });
         }
@@ -186,7 +207,19 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: result.error }, { status: 400 });
         }
 
+        // 1. Читаем текущий профиль (до обновления)
+        const current = await getTutorProfile(session.userId);
+
+        // 2. Обновляем
         await upsertTutorProfile(session.userId, result.data);
+
+        // 3. Если были критичные изменения и статус был approved — сбрасываем в pending
+        if (
+            current?.status === "approved" &&
+            hasCriticalTutorChanges(current, result.data)
+        ) {
+            await resetToPendingIfApproved(session.userId);
+        }
 
         return NextResponse.json({ success: true });
     } catch (error) {

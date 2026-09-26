@@ -22,6 +22,7 @@ const PRESET_SUBJECTS = [
 
 const MAX_SUBJECTS = 20;
 const MAX_SUBJECT_LENGTH = 50;
+const MAX_HEADLINE_LENGTH = 150;
 
 type ProfileStatusType =
     "draft" | "pending" | "approved" | "rejected" | "hidden" | null;
@@ -32,6 +33,7 @@ type Props = {
 
 export default function TutorSettings({ userId }: Props) {
     const [subjects, setSubjects] = useState<string[]>([]);
+    const [headline, setHeadline] = useState("");
     const [customInput, setCustomInput] = useState("");
     const [showCustomInput, setShowCustomInput] = useState(false);
     const [hourlyRate, setHourlyRate] = useState("");
@@ -59,6 +61,7 @@ export default function TutorSettings({ userId }: Props) {
                 }
 
                 setSubjects(data.subjects ?? []);
+                setHeadline(data.headline ?? "");
                 setHourlyRate(data.hourly_rate ? String(data.hourly_rate) : "");
                 setExperience(
                     data.experience_years !== null &&
@@ -138,6 +141,7 @@ export default function TutorSettings({ userId }: Props) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     subjects,
+                    headline,
                     hourly_rate: hourlyRate || null,
                     experience_years: experience || null,
                     education,
@@ -182,6 +186,28 @@ export default function TutorSettings({ userId }: Props) {
                 <h2 className="font-days text-[22px] text-black mb-[24px]">
                     Данные репетитора
                 </h2>
+
+                {/* === Headline === */}
+                <div className="mb-[24px]">
+                    <label className="block font-medium text-black mb-[8px]">
+                        Короткое описание
+                    </label>
+                    <input
+                        type="text"
+                        value={headline}
+                        onChange={(e) => {
+                            setHeadline(e.target.value);
+                            setError("");
+                            setSuccess("");
+                        }}
+                        maxLength={MAX_HEADLINE_LENGTH}
+                        placeholder="Математика и физика для школьников"
+                        className="w-full px-[21px] pt-[10px] pb-[13px] rounded-full border border-whiteTxt bg-white text-black placeholder:text-clue focus:border-green outline-none transition-all"
+                    />
+                    <p className="text-[12px] text-darkGray mt-[6px]">
+                        {headline.length} / {MAX_HEADLINE_LENGTH}
+                    </p>
+                </div>
 
                 {/* === Предметы === */}
                 <div className="mb-[24px]">

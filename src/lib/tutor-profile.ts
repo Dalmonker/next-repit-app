@@ -10,6 +10,7 @@ export type TutorProfileStatus =
 export type TutorProfileData = {
     status: TutorProfileStatus;
     subjects: string[];
+    headline: string | null;
     hourly_rate: number | null;
     experience_years: number | null;
     education: string | null;
@@ -18,6 +19,7 @@ export type TutorProfileData = {
 
 export type TutorProfileUpsert = {
     subjects?: string[];
+    headline?: string;
     hourly_rate?: number;
     experience_years?: number;
     education?: string;
@@ -31,7 +33,7 @@ export async function getTutorProfile(
     userId: number,
 ): Promise<TutorProfileData | null> {
     const [rows]: any = await pool.execute(
-        `SELECT status, subjects, hourly_rate, experience_years, education, rejection_reason
+        `SELECT status, subjects, headline, hourly_rate, experience_years, education, rejection_reason
          FROM tutor_profiles WHERE user_id = ? LIMIT 1`,
         [userId],
     );
@@ -55,6 +57,7 @@ export async function getTutorProfile(
     return {
         status: r.status,
         subjects,
+        headline: r.headline ?? null,
         hourly_rate: r.hourly_rate != null ? Number(r.hourly_rate) : null,
         experience_years: r.experience_years ?? null,
         education: r.education ?? null,
@@ -73,16 +76,18 @@ export async function upsertTutorProfile(
     const subjectsJson = data.subjects ? JSON.stringify(data.subjects) : null;
 
     await pool.execute(
-        `INSERT INTO tutor_profiles (user_id, subjects, hourly_rate, experience_years, education)
-         VALUES (?, ?, ?, ?, ?)
+        `INSERT INTO tutor_profiles (user_id, subjects, headline, hourly_rate, experience_years, education)
+         VALUES (?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
             subjects = COALESCE(VALUES(subjects), subjects),
+            headline = COALESCE(VALUES(headline), headline),
             hourly_rate = COALESCE(VALUES(hourly_rate), hourly_rate),
             experience_years = COALESCE(VALUES(experience_years), experience_years),
             education = COALESCE(VALUES(education), education)`,
         [
             userId,
             subjectsJson,
+            data.headline ?? null,
             data.hourly_rate ?? null,
             data.experience_years ?? null,
             data.education ?? null,
@@ -157,4 +162,73 @@ export async function submitForReview(userId: number): Promise<SubmitResult> {
     }
 
     return { ok: true };
+}
+
+// ============================================================
+// Проверка критичных изменений
+// ============================================================
+
+export function hasCriticalTutorChanges(
+    current: TutorProfileData | null,
+    incoming: TutorProfileUpsert,
+): boolean {
+    if (!current) return false;
+
+    // subjects — массив, сравниваем через JSON
+    if (
+        incoming.subjects !== undefined &&
+        JSON.stringify(incoming.subjects) !== JSON.stringify(current.subjects)
+    ) {
+        return true;
+    }
+
+    // headline
+    if (
+        incoming.headline !== undefined &&
+        (incoming.headline || null) !== current.headline
+    ) {
+        return true;
+    }
+
+    // hourly_rate
+    if (
+        incoming.hourly_rate !== undefined &&
+        incoming.hourly_rate !== current.hourly_rate
+    ) {
+        return true;
+    }
+
+    // experience_years
+    if (
+        incoming.experience_years !== undefined &&
+        incoming.experience_years !== current.experience_years
+    ) {
+        return true;
+    }
+
+    // education
+    if (
+        incoming.education !== undefined &&
+        (incoming.education || null) !== current.education
+    ) {
+        return true;
+    }
+
+    return false;
+}
+
+// ============================================================
+// Сброс в pending (только если был approved)
+// ============================================================
+
+export async function resetToPendingIfApproved(userId: number): Promise<void> {
+    await pool.execute(
+        `UPDATE tutor_profiles
+         SET status = 'pending',
+             moderated_at = NULL,
+             moderated_by = NULL,
+             rejection_reason = NULL
+         WHERE user_id = ? AND status = 'approved'`,
+        [userId],
+    );
 }

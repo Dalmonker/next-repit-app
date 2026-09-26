@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { resetToPendingIfApproved } from "@/lib/tutor-profile";
 
 // Поля, которые РАЗРЕШЕНО менять через этот API.
 // email, role, consent, id — НЕЛЬЗЯ.
@@ -12,7 +13,10 @@ type ProfileUpdate = {
     bio?: string;
 };
 
-// Валидация и нормализация
+// ============================================================
+// Валидация
+// ============================================================
+
 function validateProfile(
     body: any,
 ): { ok: true; data: ProfileUpdate } | { ok: false; error: string } {
@@ -58,7 +62,6 @@ function validateProfile(
 
     // ---- Телефон ----
     if (body.phone !== undefined) {
-        // Убираем всё, кроме цифр и +
         let v = String(body.phone).replace(/[^\d+]/g, "");
         if (v.length > 20)
             return { ok: false, error: "Телефон слишком длинный" };
@@ -79,7 +82,10 @@ function validateProfile(
     return { ok: true, data };
 }
 
-// ================= GET: получить свой профиль =================
+// ============================================================
+// GET
+// ============================================================
+
 export async function GET() {
     try {
         const session = await getSession();
@@ -110,7 +116,19 @@ export async function GET() {
     }
 }
 
-// ================= POST: обновить свой профиль =================
+// ============================================================
+// POST
+// ============================================================
+
+// Критичные для публичного профиля репетитора поля из users
+const CRITICAL_USER_FIELDS: (keyof ProfileUpdate)[] = [
+    "first_name",
+    "last_name",
+    "middle_name",
+    "bio",
+    // phone — НЕ критично (приватно)
+];
+
 export async function POST(request: Request) {
     try {
         const session = await getSession();
@@ -130,8 +148,7 @@ export async function POST(request: Request) {
 
         const data = result.data;
 
-        // Если нечего обновлять — выходим
-        const keys = Object.keys(data);
+        const keys = Object.keys(data) as (keyof ProfileUpdate)[];
         if (keys.length === 0) {
             return NextResponse.json(
                 { error: "Нет данных для обновления" },
@@ -139,7 +156,37 @@ export async function POST(request: Request) {
             );
         }
 
-        // Собираем SET-часть динамически, но безопасно — только разрешённые поля
+        // 1. Для репетитора — читаем текущие значения критичных полей
+        //    и определяем, есть ли реальные изменения
+        let hasCriticalChange = false;
+
+        if (session.role === "tutor") {
+            const fieldsToCheck = keys.filter((k) =>
+                CRITICAL_USER_FIELDS.includes(k),
+            );
+
+            if (fieldsToCheck.length > 0) {
+                const selectParts = fieldsToCheck.join(", ");
+                const [currentRows]: any = await pool.execute(
+                    `SELECT ${selectParts} FROM users WHERE id = ?`,
+                    [session.userId],
+                );
+
+                if (currentRows.length > 0) {
+                    const current = currentRows[0];
+                    for (const key of fieldsToCheck) {
+                        const oldVal = current[key] ?? "";
+                        const newVal = (data as any)[key] ?? "";
+                        if (String(oldVal) !== String(newVal)) {
+                            hasCriticalChange = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Обновляем users
         const setParts: string[] = [];
         const values: any[] = [];
 
@@ -147,13 +194,17 @@ export async function POST(request: Request) {
             setParts.push(`${key} = ?`);
             values.push((data as any)[key]);
         }
-
-        values.push(session.userId); // WHERE id = ?
+        values.push(session.userId);
 
         await pool.execute(
             `UPDATE users SET ${setParts.join(", ")} WHERE id = ?`,
             values,
         );
+
+        // 3. Если репетитор был approved и менял критичные поля — сбрасываем в pending
+        if (session.role === "tutor" && hasCriticalChange) {
+            await resetToPendingIfApproved(session.userId);
+        }
 
         return NextResponse.json({ success: true });
     } catch (error) {
