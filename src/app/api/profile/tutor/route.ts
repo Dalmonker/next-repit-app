@@ -27,8 +27,8 @@ const PRESET_SUBJECTS = [
 
 const MAX_SUBJECTS = 20;
 const MAX_SUBJECT_LENGTH = 50;
-const MAX_HEADLINE_LENGTH = 150;
-const MAX_EDUCATION_LENGTH = 1000;
+const MAX_HEADLINE_LENGTH = 600;
+const MAX_EDUCATION_LENGTH = 600;
 const MAX_HOURLY_RATE = 100000;
 
 // ============================================================
@@ -88,7 +88,7 @@ function validateTutor(body: any) {
         if (s.length > MAX_HEADLINE_LENGTH) {
             return {
                 ok: false as const,
-                error: `Короткое описание макс. ${MAX_HEADLINE_LENGTH} символов`,
+                error: `Описание макс. ${MAX_HEADLINE_LENGTH} символов`,
             };
         }
         result.headline = s;
@@ -207,13 +207,9 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: result.error }, { status: 400 });
         }
 
-        // 1. Читаем текущий профиль (до обновления)
         const current = await getTutorProfile(session.userId);
-
-        // 2. Обновляем
         await upsertTutorProfile(session.userId, result.data);
 
-        // 3. Если были критичные изменения и статус был approved — сбрасываем в pending
         if (
             current?.status === "approved" &&
             hasCriticalTutorChanges(current, result.data)
