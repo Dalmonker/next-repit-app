@@ -39,17 +39,17 @@ export default function ProfileLink({ slug, baseUrl }: Props) {
     }
 
     return (
-        <div className="bg-white rounded-[30px] p-[30px]">
+        <div className="bg-white rounded-[30px] p-[30px] pb-[34px]">
             <h2 className="font-days text-[22px] text-black mb-[18px]">
                 Ссылка на ваш профиль
             </h2>
 
-            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-[12px] mb-[14px]">
-                <div className="flex-1 flex items-center bg-violet rounded-full overflow-hidden min-w-0">
-                    <span className="pl-[20px] pr-[2px] py-[14px] text-darkGray text-[15px] select-none whitespace-nowrap">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-[10px] mb-[14px]">
+                <div className="flex-1 flex items-center rounded-full overflow-hidden min-w-0 border border-violet">
+                    <span className="bg-violet px-[20px] py-[14px] text-darkGray text-[15px] select-none whitespace-nowrap">
                         {cleanBase}/tutors/
                     </span>
-                    <span className="pr-[20px] py-[14px] text-black text-[15px] truncate">
+                    <span className="px-[20px] py-[14px] text-black text-[15px] truncate">
                         {slug}
                     </span>
                 </div>
@@ -65,7 +65,7 @@ export default function ProfileLink({ slug, baseUrl }: Props) {
 
             {error && <p className="text-red text-[13px] mb-[8px]">{error}</p>}
 
-            <p className="text-darkGray text-[14px]">
+            <p className="text-darkGray text-[15px] leading-[20%]">
                 По этой ссылке ученики смогут найти ваш профиль. Её можно
                 скопировать и отправить ученику
             </p>

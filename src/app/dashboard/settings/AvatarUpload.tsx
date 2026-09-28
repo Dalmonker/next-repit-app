@@ -1,4 +1,5 @@
 "use client";
+import { Svg } from "@/components/Svg";
 
 import { useState, useRef } from "react";
 
@@ -88,20 +89,8 @@ export default function AvatarUpload({ currentUrl, onChange }: Props) {
 
             {/* Значок карандаша */}
             {!uploading && (
-                <div className="absolute -bottom-[2px] -right-[2px] w-[24px] h-[24px] rounded-full bg-[#2E2A45] flex items-center justify-center pointer-events-none">
-                    <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    >
-                        <path d="M12 20h9" />
-                        <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
-                    </svg>
+                <div className="absolute -bottom-[2px] -right-[25px] w-[44px] h-[44px] rounded-full bg-[#2E2A45] flex items-center justify-center pointer-events-none">
+                    <Svg className="w-[20px] h-[20px]" iconId="avatar-reder" />
                 </div>
             )}
 

@@ -62,13 +62,19 @@ function validateProfile(
 
     // ---- Телефон ----
     if (body.phone !== undefined) {
-        let v = String(body.phone).replace(/[^\d+]/g, "");
-        if (v.length > 20)
-            return { ok: false, error: "Телефон слишком длинный" };
-        if (v && !/^\+?\d{7,15}$/.test(v)) {
-            return { ok: false, error: "Некорректный номер телефона" };
+        const raw = String(body.phone).trim();
+        if (!raw) {
+            data.phone = "";
+        } else {
+            const digits = raw.replace(/\D/g, "");
+            if (digits.length !== 12 || !digits.startsWith("375")) {
+                return {
+                    ok: false,
+                    error: "Некорректный номер телефона",
+                };
+            }
+            data.phone = `+${digits}`;
         }
-        data.phone = v;
     }
 
     // ---- О себе ----

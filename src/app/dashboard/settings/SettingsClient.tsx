@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import ProfileTab from "./ProfileTab";
+import LessonSettings from "./LessonSettings";
+import NotificationSettings from "./NotificationSettings";
 import Placeholder from "./Placeholder";
 
 type Props = {
@@ -53,9 +55,9 @@ export default function SettingsClient({ email, role, userId }: Props) {
             {activeTab === "profile" && (
                 <ProfileTab email={email} role={role} userId={userId} />
             )}
-            {activeTab === "lessons" && <Placeholder title="Уроки" />}
+            {activeTab === "lessons" && <LessonSettings userId={userId} />}
             {activeTab === "notifications" && (
-                <Placeholder title="Уведомления" />
+                <NotificationSettings userId={userId} />
             )}
             {activeTab === "payments" && <Placeholder title="Платежи" />}
         </>

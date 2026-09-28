@@ -4,6 +4,15 @@ import { useEffect, useState } from "react";
 import AvatarUpload from "./AvatarUpload";
 import ProfileStatus from "./ProfileStatus";
 import ProfileLink from "./ProfileLink";
+import DeleteAccountBlock from "./DeleteAccountBlock";
+
+import {
+    extractDigits,
+    formatPhoneDigits,
+    normalizePhone,
+    phoneFromDb,
+    isValidBelarusPhone,
+} from "@/lib/phone";
 
 const PRESET_SUBJECTS = [
     "Математика",
@@ -104,7 +113,7 @@ export default function ProfileTab({ email, role, userId }: Props) {
                 setFirstName(fName);
                 setLastName(lName);
                 setMiddleName(u.middle_name ?? "");
-                setPhone(u.phone ?? "");
+                setPhone(phoneFromDb(u.phone ?? null));
                 setAvatarUrl(aUrl);
 
                 if (role === "tutor") {
@@ -217,7 +226,7 @@ export default function ProfileTab({ email, role, userId }: Props) {
                     first_name: firstName,
                     last_name: lastName,
                     middle_name: middleName,
-                    phone,
+                    phone: phone.trim() ? normalizePhone(phone) : "",
                 }),
             });
 
@@ -314,7 +323,7 @@ export default function ProfileTab({ email, role, userId }: Props) {
                     Персональная информация
                 </h2>
 
-                <div className="flex flex-col md:flex-row gap-[24px] items-start">
+                <div className="flex flex-col md:flex-row gap-[54px] items-start">
                     <AvatarUpload
                         currentUrl={avatarUrl}
                         onChange={(url) => {
@@ -325,7 +334,7 @@ export default function ProfileTab({ email, role, userId }: Props) {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-[12px] flex-1 w-full">
                         <div>
-                            <label className="block text-[13px] text-darkGray mb-[6px]">
+                            <label className="block font-medium text-[17px] text-gray mb-[12px]">
                                 Имя <span className="text-red">*</span>
                             </label>
                             <input
@@ -336,11 +345,11 @@ export default function ProfileTab({ email, role, userId }: Props) {
                                     markDirty();
                                 }}
                                 maxLength={50}
-                                className="w-full px-[16px] py-[10px] rounded-[12px] border border-whiteTxt bg-white text-black focus:border-green outline-none transition-all"
+                                className="w-full px-[21px] pt-[16px] pb-[18px] rounded-full border border-violet bg-white text-black focus:border-green outline-none transition-all"
                             />
                         </div>
                         <div>
-                            <label className="block text-[13px] text-darkGray mb-[6px]">
+                            <label className="block font-medium text-[17px] text-gray mb-[12px]">
                                 Фамилия <span className="text-red">*</span>
                             </label>
                             <input
@@ -351,11 +360,11 @@ export default function ProfileTab({ email, role, userId }: Props) {
                                     markDirty();
                                 }}
                                 maxLength={50}
-                                className="w-full px-[16px] py-[10px] rounded-[12px] border border-whiteTxt bg-white text-black focus:border-green outline-none transition-all"
+                                className="w-full px-[21px] pt-[16px] pb-[18px] rounded-full border border-violet bg-white text-black focus:border-green outline-none transition-all"
                             />
                         </div>
                         <div>
-                            <label className="block text-[13px] text-darkGray mb-[6px]">
+                            <label className="block font-medium text-[17px] text-gray mb-[12px]">
                                 Отчество
                             </label>
                             <input
@@ -367,7 +376,7 @@ export default function ProfileTab({ email, role, userId }: Props) {
                                 }}
                                 maxLength={50}
                                 placeholder="Ваше отчество"
-                                className="w-full px-[16px] py-[10px] rounded-[12px] border border-whiteTxt bg-white text-black placeholder:text-clue focus:border-green outline-none transition-all"
+                                className="w-full px-[21px] pt-[16px] pb-[18px] rounded-full border border-violet bg-white text-black text-[17px] placeholder:text-clue focus:border-green outline-none transition-all"
                             />
                         </div>
                     </div>
@@ -375,13 +384,13 @@ export default function ProfileTab({ email, role, userId }: Props) {
             </div>
 
             {/* 4. Контакты */}
-            <div className="bg-white rounded-[24px] p-[32px]">
-                <h2 className="font-days text-[22px] text-black mb-[24px]">
+            <div className="bg-white rounded-[30px] p-[30px] pb-[34px]">
+                <h2 className="font-days text-[22px] text-black mb-[20px]">
                     Контакты
                 </h2>
 
-                <div className="mb-[20px]">
-                    <label className="block text-[13px] text-darkGray mb-[6px]">
+                <div className="mb-[24px]">
+                    <label className="block text-[17px] text-gray font-medium mb-[12px]">
                         Почта для входа
                     </label>
                     <input
@@ -389,35 +398,43 @@ export default function ProfileTab({ email, role, userId }: Props) {
                         value={email}
                         readOnly
                         disabled
-                        className="w-full px-[16px] py-[10px] rounded-[12px] border border-whiteTxt bg-violet text-darkGray cursor-not-allowed outline-none"
+                        className="w-full px-[20px] pt-[15px] pb-[17px] rounded-full border border-violet bg-violet text-gray cursor-not-allowed outline-none"
                     />
-                    <p className="text-[12px] text-darkGray mt-[6px]">
+                    <p className="text-[15px]/20% text-darkGray mt-[12px]">
                         Email нельзя изменить
                     </p>
                 </div>
 
                 <div>
-                    <label className="block text-[13px] text-darkGray mb-[6px]">
+                    <label className="block text-[17px] text-gray font-medium mb-[12px]">
                         Телефон
                     </label>
-                    <input
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => {
-                            setPhone(e.target.value);
-                            markDirty();
-                        }}
-                        placeholder="+375 29 123-45-67"
-                        maxLength={20}
-                        className="w-full px-[16px] py-[10px] rounded-[12px] border border-whiteTxt bg-white text-black placeholder:text-clue focus:border-green outline-none transition-all"
-                    />
-                    <p className="text-[12px] text-darkGray mt-[6px]">
+                    <div className="flex items-center w-full px-[20px] pt-[15px] pb-[17px] rounded-full border border-violet bg-white focus-within:border-green transition-all">
+                        <span className="text-black font-medium text-[17px] select-none">
+                            +375
+                        </span>
+                        <input
+                            type="tel"
+                            inputMode="numeric"
+                            value={phone}
+                            onChange={(e) => {
+                                const digits = extractDigits(
+                                    e.target.value,
+                                ).slice(0, 9);
+                                setPhone(formatPhoneDigits(digits));
+                                markDirty();
+                            }}
+                            placeholder="29 301-13-11"
+                            maxLength={12}
+                            className="flex-1 ml-[8px] bg-transparent text-black text-[17px] placeholder:text-clue outline-none"
+                        />
+                    </div>
+                    <p className="text-[15px]/20% text-darkGray mt-[8px]">
                         Необязательно. Отображается на странице для звонка.
                     </p>
                 </div>
             </div>
 
-            {/* 5. Преподаваемые дисциплины */}
             {role === "tutor" && (
                 <div className="bg-white rounded-[24px] p-[32px]">
                     <div className="flex items-center justify-between mb-[20px]">
@@ -430,7 +447,8 @@ export default function ProfileTab({ email, role, userId }: Props) {
                         </span>
                     </div>
 
-                    <div className="flex flex-wrap gap-[8px] mb-[16px]">
+                    {/* Пресеты + свои + кнопка "Добавить" в одном flex */}
+                    <div className="flex flex-wrap gap-[10px] mb-[16px]">
                         {PRESET_SUBJECTS.map((subject) => {
                             const isSelected = subjects.includes(subject);
                             return (
@@ -439,9 +457,9 @@ export default function ProfileTab({ email, role, userId }: Props) {
                                     type="button"
                                     onClick={() => toggleSubject(subject)}
                                     disabled={saving}
-                                    className={`cursor-pointer px-[14px] py-[6px] rounded-full text-[13px] transition disabled:opacity-50 ${
+                                    className={`cursor-pointer font-medium px-[16px] pt-[9px] pb-[11px] rounded-full text-[15px]/20% transition disabled:opacity-50 ${
                                         isSelected
-                                            ? "bg-green text-black font-medium"
+                                            ? "bg-green text-black"
                                             : "bg-violet text-black hover:opacity-80"
                                     }`}
                                 >
@@ -449,37 +467,42 @@ export default function ProfileTab({ email, role, userId }: Props) {
                                 </button>
                             );
                         })}
+
+                        {/* Свои предметы — как теги (с ×) */}
+                        {customSubjects.map((subject) => (
+                            <span
+                                key={subject}
+                                className="flex items-center gap-[8px] font-medium px-[16px] pt-[9px] pb-[11px] rounded-full text-[15px]/20% bg-green text-black"
+                            >
+                                {subject}
+                                <button
+                                    type="button"
+                                    onClick={() => toggleSubject(subject)}
+                                    disabled={saving}
+                                    className="cursor-pointer opacity-60 hover:opacity-100"
+                                >
+                                    ×
+                                </button>
+                            </span>
+                        ))}
+
+                        {/* Кнопка "Добавить свой предмет" — как preset-кнопка */}
+                        {!showCustomInput && (
+                            <button
+                                type="button"
+                                onClick={() => setShowCustomInput(true)}
+                                disabled={
+                                    saving || subjects.length >= MAX_SUBJECTS
+                                }
+                                className="cursor-pointer font-medium px-[16px] pt-[9px] pb-[11px] rounded-full text-[15px]/20% bg-white border border-violet text-black hover:opacity-80 transition disabled:opacity-50"
+                            >
+                                + Добавить
+                            </button>
+                        )}
                     </div>
 
-                    {customSubjects.length > 0 && (
-                        <div className="mb-[16px]">
-                            <p className="text-[12px] text-darkGray mb-[8px]">
-                                Свои предметы:
-                            </p>
-                            <div className="flex flex-wrap gap-[8px]">
-                                {customSubjects.map((subject) => (
-                                    <span
-                                        key={subject}
-                                        className="flex items-center gap-[6px] px-[14px] py-[6px] rounded-full bg-green text-black text-[13px] font-medium"
-                                    >
-                                        {subject}
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                toggleSubject(subject)
-                                            }
-                                            disabled={saving}
-                                            className="cursor-pointer opacity-60 hover:opacity-100"
-                                        >
-                                            ×
-                                        </button>
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {showCustomInput ? (
+                    {/* Если открыт input — показываем его под кнопками */}
+                    {showCustomInput && (
                         <div className="flex gap-[8px]">
                             <input
                                 type="text"
@@ -498,40 +521,31 @@ export default function ProfileTab({ email, role, userId }: Props) {
                                 maxLength={MAX_SUBJECT_LENGTH}
                                 placeholder="Название предмета"
                                 autoFocus
-                                className="flex-1 px-[16px] py-[10px] rounded-[12px] border border-whiteTxt bg-white text-black focus:border-green outline-none transition-all"
+                                className="flex-1 px-[16px] py-[10px] rounded-full border border-violet bg-white text-black focus:border-green outline-none transition-all"
                             />
                             <button
                                 type="button"
                                 onClick={addCustomSubject}
                                 disabled={!customInput.trim() || saving}
-                                className="cursor-pointer bg-green text-black px-[20px] rounded-full hover:bg-[#c2e055] transition disabled:opacity-50"
+                                className="cursor-pointer bg-green text-black px-[24px] rounded-full hover:bg-[#c2e055] transition disabled:opacity-50 font-medium"
                             >
                                 ОК
                             </button>
                         </div>
-                    ) : (
-                        <button
-                            type="button"
-                            onClick={() => setShowCustomInput(true)}
-                            disabled={saving || subjects.length >= MAX_SUBJECTS}
-                            className="cursor-pointer text-blue hover:underline text-[13px] disabled:opacity-50"
-                        >
-                            + Добавить свой предмет
-                        </button>
                     )}
                 </div>
             )}
 
             {/* 6. О себе */}
             {role === "tutor" && (
-                <div className="bg-white rounded-[24px] p-[32px]">
-                    <h2 className="font-days text-[22px] text-black mb-[24px]">
+                <div className="bg-white rounded-[30px] p-[30px] pb-[34px]">
+                    <h2 className="font-days text-[22px] text-black mb-[20px]">
                         О себе
                     </h2>
 
                     <div className="mb-[20px]">
                         <div className="flex justify-between items-baseline mb-[8px]">
-                            <label className="text-[14px] text-black">
+                            <label className="font-medium text-[17px] text-gray">
                                 Описание <span className="text-red">*</span>
                             </label>
                             <span className="text-[12px] text-darkGray">
@@ -545,15 +559,17 @@ export default function ProfileTab({ email, role, userId }: Props) {
                                 markDirty();
                             }}
                             maxLength={MAX_HEADLINE_LENGTH}
-                            rows={4}
-                            placeholder="Расскажите о себе и о том, как проходят занятия"
-                            className="w-full px-[16px] py-[12px] rounded-[12px] border border-whiteTxt bg-white text-black placeholder:text-clue focus:border-green outline-none transition-all resize-none"
+                            placeholder="..."
+                            className="w-full h-[200px] px-[20px] pt-[15px] pb-[15px] rounded-[30px] border border-violet bg-white text-black text-[17px] placeholder:text-clue focus:border-green outline-none transition-all resize-none"
                         />
+                        <div className="text-[15px]/20% text-darkGray">
+                            Описание отобразится на странице учителя
+                        </div>
                     </div>
 
                     <div className="mb-[20px]">
                         <div className="flex justify-between items-baseline mb-[8px]">
-                            <label className="text-[14px] text-black">
+                            <label className="font-medium text-[17px] text-gray">
                                 Образование <span className="text-red">*</span>
                             </label>
                             <span className="text-[12px] text-darkGray">
@@ -567,14 +583,16 @@ export default function ProfileTab({ email, role, userId }: Props) {
                                 markDirty();
                             }}
                             maxLength={MAX_EDUCATION_LENGTH}
-                            rows={4}
                             placeholder="Расскажите, где вы учились"
-                            className="w-full px-[16px] py-[12px] rounded-[12px] border border-whiteTxt bg-white text-black placeholder:text-clue focus:border-green outline-none transition-all resize-none"
+                            className="w-full h-[200px] px-[20px] pt-[15px] pb-[15px] rounded-[30px] border border-violet bg-white text-black text-[17px] placeholder:text-clue focus:border-green outline-none transition-all resize-none"
                         />
+                        <div className="text-[15px]/20% text-darkGray">
+                            Описание отобразится на странице учителя
+                        </div>
                     </div>
 
                     <div>
-                        <label className="block text-[14px] text-black mb-[8px]">
+                        <label className="block font-medium text-[17px] text-gray mb-[8px]">
                             Опыт преподавания (лет){" "}
                             <span className="text-red">*</span>
                         </label>
@@ -598,13 +616,13 @@ export default function ProfileTab({ email, role, userId }: Props) {
 
             {/* 7. Цена */}
             {role === "tutor" && (
-                <div className="bg-white rounded-[24px] p-[32px]">
-                    <h2 className="font-days text-[22px] text-black mb-[24px]">
+                <div className="bg-white rounded-[24px] p-[30px] pb-[34px]">
+                    <h2 className="font-days text-[22px] text-black mb-[20px]">
                         Стоимость занятий
                     </h2>
 
                     <div>
-                        <label className="block text-[14px] text-black mb-[8px]">
+                        <label className="block text-[17px] text-gray mb-[12px]">
                             Цена за урок (BYN){" "}
                             <span className="text-red">*</span>
                         </label>
@@ -618,7 +636,7 @@ export default function ProfileTab({ email, role, userId }: Props) {
                             }}
                             placeholder="50"
                             maxLength={10}
-                            className="w-full px-[16px] py-[10px] rounded-[12px] border border-whiteTxt bg-white text-black placeholder:text-clue focus:border-green outline-none transition-all"
+                            className="w-full px-[21px] pt-[16px] pb-[18px] rounded-full border border-violet bg-white text-black placeholder:text-clue focus:border-green outline-none transition-all"
                         />
                     </div>
                 </div>
@@ -652,6 +670,9 @@ export default function ProfileTab({ email, role, userId }: Props) {
                     предметы, образование, опыт, цена
                 </p>
             )}
+
+            {/* Удаление аккаунта */}
+            <DeleteAccountBlock />
         </div>
     );
 }
