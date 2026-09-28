@@ -24,12 +24,12 @@ export default function SettingsClient({ email, role, userId }: Props) {
 
     return (
         <>
-            <h1 className="font-days text-[32px] text-black mb-[24px]">
+            <h1 className="font-days text-[36px] text-black m-[0px]">
                 Настройки
             </h1>
 
             {/* Табы */}
-            <div className="flex gap-[8px] mb-[24px] flex-wrap">
+            <div className="flex flex-wrap">
                 {TABS.map((tab) => {
                     const isActive = tab.id === activeTab;
                     return (

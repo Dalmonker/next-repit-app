@@ -5,22 +5,35 @@ import { usePathname } from "next/navigation";
 import { Svg } from "@/components/Svg";
 
 const MENU = [
-    { href: "/dashboard", label: "Главная", icon: "home" },
-    { href: "/dashboard/students", label: "Ученики", icon: "users" },
-    { href: "/dashboard/schedule", label: "Расписание", icon: "calendar" },
-    { href: "/dashboard/statistics", label: "Статистика", icon: "chart" },
-    { href: "/dashboard/finance", label: "Финансы", icon: "wallet" },
+    { href: "/dashboard", label: "Главная", iconId: "aside-home" },
+    { href: "/dashboard/students", label: "Ученики", iconId: "aside-students" },
+    {
+        href: "/dashboard/schedule",
+        label: "Расписание",
+        iconId: "aside-schedule",
+    },
+    {
+        href: "/dashboard/finance",
+        label: "Финансы",
+        iconId: "aside-wallet",
+    },
+    { href: "/dashboard/statistics", label: "Доски", iconId: "aside-boards" },
     {
         href: "/dashboard/notifications",
-        label: "Уведомления",
-        icon: "bell",
+        label: "Чаты",
+        iconId: "aside-chats",
         badge: 3,
     },
 ];
 
 const SECONDARY = [
-    { href: "/dashboard/settings", label: "Настройки", icon: "settings" },
-    { href: "/dashboard/support", label: "Поддержка", icon: "help" },
+    {
+        href: "/dashboard/settings",
+        label: "Настройки",
+        iconId: "aside-settings",
+        className:
+            "text-black bg-white rounded-[30px] mb-0 pt-[12px] pb-[14px]",
+    },
 ];
 
 export default function Sidebar() {
@@ -29,7 +42,9 @@ export default function Sidebar() {
     function renderItem(item: {
         href: string;
         label: string;
+        iconId: string;
         badge?: number;
+        className?: string;
     }) {
         const isActive =
             item.href === "/dashboard"
@@ -43,16 +58,12 @@ export default function Sidebar() {
             <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-[12px] px-[16px] py-[10px] rounded-[10px] mb-[4px] text-[15px] transition ${
-                    isActive
-                        ? "bg-green text-black font-medium"
-                        : "text-darkGray hover:bg-violet hover:text-black"
+                className={`flex font-medium mb-[30px] items-center gap-[12px] px-[14px] rounded-[10px] text-[17px] transition ${
+                    item.className ?? "text-white"
                 }`}
             >
-                <span className="w-[20px] h-[20px] flex items-center justify-center opacity-80">
-                    {/* Пока иконок нет — заглушка */}
-                    <span className="block w-[6px] h-[6px] rounded-full bg-current" />
-                </span>
+                <Svg iconId={`${item.iconId}`} className="w-[24px] h-[24px]" />
+
                 <span>{item.label}</span>
                 {item.badge && (
                     <span className="ml-auto bg-[#EEF861] text-black text-[12px] font-medium px-[8px] py-[2px] rounded-full">
@@ -64,106 +75,64 @@ export default function Sidebar() {
     }
 
     return (
-        <aside className="w-[240px] min-h-screen bg-white border-r border-[#EDEDF5] flex flex-col p-[20px]">
-            {/* Логотип */}
-            <div className="flex items-center justify-between mb-[32px]">
-                <Svg iconId="logo" className="w-[74px] h-[42px]" />
-                <button
-                    type="button"
-                    className="cursor-pointer w-[28px] h-[28px] flex items-center justify-center rounded-[8px] border border-[#EDEDF5] text-darkGray hover:bg-violet"
-                    aria-label="Свернуть"
-                >
-                    <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
+        <aside className="sticky top-[30px] h-[calc(100vh-60px)] w-[300px] pb-[30px] rounded-[30px] bg-black border-r flex flex-col">
+            <div className="p-[30px] flex flex-col h-full">
+                <div className="flex items-center justify-between mb-[38px]">
+                    <Link href="/" className="flex items-center gap-2">
+                        <Svg
+                            className="w-[74px] h-[42px]"
+                            iconId="logo"
+                            color="#F3F3F3"
+                        />
+                    </Link>
+                    <button
+                        type="button"
+                        className="cursor-pointer w-[28px] h-[28px] flex items-center justify-center rounded-[8px] border border-[#EDEDF5] text-darkGray hover:bg-violet"
+                        aria-label="Свернуть"
                     >
-                        <path d="M15 18l-6-6 6-6" />
-                    </svg>
-                </button>
-            </div>
-
-            {/* Основное меню */}
-            <nav className="flex-1">
-                {MENU.map(renderItem)}
-
-                {/* Разделитель */}
-                <div className="h-[1px] bg-[#EDEDF5] my-[20px]" />
-
-                {SECONDARY.map(renderItem)}
-            </nav>
-
-            {/* Кнопки внизу */}
-            <div className="flex items-center gap-[8px] mb-[20px]">
-                <Link
-                    href="/dashboard/create"
-                    className="flex-1 flex items-center justify-center gap-[8px] bg-[#2E2A45] text-white text-[14px] font-medium py-[10px] rounded-[10px] hover:opacity-90 transition"
-                >
-                    <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                    >
-                        <path d="M12 5v14M5 12h14" />
-                    </svg>
-                    Создать
-                </Link>
-
-                <button
-                    type="button"
-                    className="cursor-pointer flex items-center justify-center gap-[6px] border border-[#EDEDF5] text-[14px] text-darkGray px-[12px] py-[10px] rounded-[10px] hover:bg-violet"
-                >
-                    <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                    >
-                        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-                    </svg>
-                    Тенюх
-                </button>
-            </div>
-
-            {/* Профиль */}
-            <div className="flex items-center gap-[12px] pt-[16px] border-t border-[#EDEDF5]">
-                <div className="w-[36px] h-[36px] rounded-full bg-violet shrink-0" />
-                <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-medium text-black truncate">
-                        Дмитрий
-                    </p>
-                    <p className="text-[12px] text-darkGray truncate">
-                        Партнёров
-                    </p>
+                        <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                        >
+                            <path d="M15 18l-6-6 6-6" />
+                        </svg>
+                    </button>
                 </div>
-                <button
-                    type="button"
-                    className="cursor-pointer text-darkGray hover:text-black"
-                    aria-label="Выйти"
-                >
-                    <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
+                <div className="h-[1px] w-full bg-[linear-gradient(90deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.3)_50%,rgba(255,255,255,0)_100%)]" />
+
+                <nav className="mt-[28px]">
+                    {MENU.map(renderItem)}
+
+                    <div className="h-[1px] w-full bg-[linear-gradient(90deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.3)_50%,rgba(255,255,255,0)_100%)] my-[44px]" />
+                    {SECONDARY.map(renderItem)}
+                </nav>
+
+                <div className="mt-auto bg-white p-[7px] rounded-[30px] flex items-center gap-[12px]">
+                    <div className="w-[44px] h-[44px] rounded-full bg-violet shrink-0" />
+                    <div className="flex-1 min-w-0">
+                        <p className="text-[17px] font-medium text-black mb-[2px]">
+                            Дмитрий
+                        </p>
+                        <p className="text-[13px] font-medium text-gray">
+                            Преподаватель
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        className="cursor-pointer p-[11px] border border-violet rounded-full"
+                        aria-label="Выйти"
                     >
-                        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
-                    </svg>
-                </button>
+                        <Svg
+                            iconId="aside-leave"
+                            className="w-[20px] h-[20px]"
+                        />
+                    </button>
+                </div>
             </div>
         </aside>
     );

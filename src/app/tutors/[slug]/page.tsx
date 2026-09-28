@@ -1,30 +1,51 @@
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import InviteButton from "@/components/InviteButton";
-import { getApprovedTutorById } from "@/lib/tutors";
+import { getApprovedTutorById, getApprovedTutorBySlug } from "@/lib/tutors";
 import { getSession } from "@/lib/auth";
 
 export default async function TutorPage({
     params,
 }: {
-    params: Promise<{ id: string }>;
+    params: Promise<{ slug: string }>;
 }) {
-    const { id } = await params;
-    const tutorId = Number(id);
+    const { slug } = await params;
 
-    if (!Number.isInteger(tutorId) || tutorId <= 0) {
-        notFound();
+    // Если пришёл числовой id (старая ссылка) — редирект на slug
+    if (/^\d+$/.test(slug)) {
+        const id = Number(slug);
+        const tutorById = await getApprovedTutorById(id);
+
+        if (!tutorById) {
+            notFound();
+        }
+
+        if (tutorById.slug) {
+            redirect(`/tutors/${tutorById.slug}`);
+        }
+
+        // Нет slug — оставляем как есть, покажем по id (fallback)
+        return renderTutor(tutorById);
     }
 
-    const tutor = await getApprovedTutorById(tutorId);
+    // Обычный slug
+    const tutor = await getApprovedTutorBySlug(slug);
 
     if (!tutor) {
         notFound();
     }
 
+    return renderTutor(tutor);
+}
+
+// ============================================================
+// Рендер профиля
+// ============================================================
+
+async function renderTutor(tutor: any) {
     const session = await getSession();
 
     const fullName =
@@ -78,7 +99,7 @@ export default async function TutorPage({
 
                                 {tutor.subjects.length > 0 && (
                                     <div className="flex flex-wrap gap-[8px] mb-[20px]">
-                                        {tutor.subjects.map((s) => (
+                                        {tutor.subjects.map((s: string) => (
                                             <span
                                                 key={s}
                                                 className="px-[14px] py-[6px] rounded-full bg-violet text-black text-[14px]"

@@ -1,4 +1,5 @@
 import pool from "@/lib/db";
+import { generateUniqueSlug } from "@/lib/tutors";
 
 // ============================================================
 // Типы
@@ -36,6 +37,7 @@ export type AdminActionResult = { ok: true } | { ok: false; error: string };
 // ============================================================
 
 const MAX_REJECTION_REASON = 1000;
+const MAX_SLUG_ATTEMPTS = 3;
 
 // ============================================================
 // Список репетиторов на модерации
@@ -94,7 +96,7 @@ export async function approveTutor(
 
         // Проверяем статус с блокировкой строки
         const [rows]: any = await conn.execute(
-            `SELECT status FROM tutor_profiles WHERE user_id = ? FOR UPDATE`,
+            `SELECT status, slug FROM tutor_profiles WHERE user_id = ? FOR UPDATE`,
             [tutorId],
         );
 
@@ -107,7 +109,9 @@ export async function approveTutor(
             return { ok: false, error: "Репетитор уже обработан" };
         }
 
-        // Обновляем
+        const existingSlug = rows[0].slug;
+
+        // Обновляем статус
         await conn.execute(
             `UPDATE tutor_profiles
              SET status = 'approved',
@@ -117,6 +121,48 @@ export async function approveTutor(
              WHERE user_id = ?`,
             [adminId, tutorId],
         );
+
+        // Генерируем slug, если нет
+        if (!existingSlug) {
+            const [userRows]: any = await conn.execute(
+                `SELECT first_name, last_name FROM users WHERE id = ? LIMIT 1`,
+                [tutorId],
+            );
+
+            if (userRows.length > 0) {
+                const u = userRows[0];
+                let slugSet = false;
+
+                for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt++) {
+                    const slug = await generateUniqueSlug(
+                        u.first_name ?? "",
+                        u.last_name ?? "",
+                        tutorId,
+                    );
+
+                    try {
+                        await conn.execute(
+                            `UPDATE tutor_profiles SET slug = ? WHERE user_id = ?`,
+                            [slug, tutorId],
+                        );
+                        slugSet = true;
+                        break;
+                    } catch (err: any) {
+                        // Дубликат — пробуем ещё раз
+                        if (err.code === "ER_DUP_ENTRY") continue;
+                        throw err;
+                    }
+                }
+
+                if (!slugSet) {
+                    await conn.rollback();
+                    return {
+                        ok: false,
+                        error: "Не удалось сгенерировать ссылку профиля",
+                    };
+                }
+            }
+        }
 
         // Пишем в audit_log
         await conn.execute(

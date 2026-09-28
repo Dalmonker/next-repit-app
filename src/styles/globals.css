@@ -26,6 +26,7 @@
 
 
   --color-white: #FFFFFF;
+  --color-whiteDashboard: #F5F5F5;
   --color-whiteTxt: #F3F3F3;
   --color-black: #37324C;
   --color-green: #D5F861;
@@ -34,6 +35,8 @@
   --color-yellow: #EEF861;
   --color-blue: #4945CA;
   --color-red: #F86161;
+  --color-redLight: #FEEFEF;
+  --color-gray: #6A6777;
   --color-lightGray: #D6D5DA;
   --color-darkGray: #9994B5;
 
@@ -52,8 +55,9 @@ body {
   font-family: var(--font-sans);
 }
 
-.container {
-  max-width: 1216px;
+
+.container-profile {
+  max-width: 1416px;
   margin: 0 auto;
 }
 

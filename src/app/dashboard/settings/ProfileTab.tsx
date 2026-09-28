@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import AvatarUpload from "./AvatarUpload";
 import ProfileStatus from "./ProfileStatus";
+import ProfileLink from "./ProfileLink";
 
 const PRESET_SUBJECTS = [
     "Математика",
@@ -35,15 +36,37 @@ type Props = {
     userId: number;
 };
 
+// Хелпер: проверить, готов ли профиль к отправке
+function checkProfileReady(data: {
+    firstName: string;
+    lastName: string;
+    avatarUrl: string | null;
+    headline: string;
+    subjects: string[];
+    education: string;
+    experience: string;
+    hourlyRate: string;
+}): boolean {
+    return (
+        data.firstName.trim().length > 0 &&
+        data.lastName.trim().length > 0 &&
+        data.avatarUrl !== null &&
+        data.headline.trim().length > 0 &&
+        data.subjects.length > 0 &&
+        data.education.trim().length > 0 &&
+        data.experience.trim() !== "" &&
+        data.hourlyRate.trim() !== "" &&
+        Number(data.hourlyRate) > 0
+    );
+}
+
 export default function ProfileTab({ email, role, userId }: Props) {
-    // ===== Общие поля (users) =====
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [middleName, setMiddleName] = useState("");
     const [phone, setPhone] = useState("");
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-    // ===== Поля репетитора (tutor_profiles) =====
     const [headline, setHeadline] = useState("");
     const [subjects, setSubjects] = useState<string[]>([]);
     const [education, setEducation] = useState("");
@@ -52,21 +75,19 @@ export default function ProfileTab({ email, role, userId }: Props) {
     const [customInput, setCustomInput] = useState("");
     const [showCustomInput, setShowCustomInput] = useState(false);
 
-    // ===== Статус =====
     const [profileStatus, setProfileStatus] = useState<ProfileStatusType>(null);
     const [rejectionReason, setRejectionReason] = useState<string | null>(null);
+    const [slug, setSlug] = useState<string | null>(null);
 
-    // ===== UI =====
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [saved, setSaved] = useState(false);
 
-    // ===== Загрузка =====
     useEffect(() => {
         async function load() {
             try {
-                // Общий профиль
                 const resProfile = await fetch("/api/profile");
                 const dataProfile = await resProfile.json();
 
@@ -76,34 +97,54 @@ export default function ProfileTab({ email, role, userId }: Props) {
                 }
 
                 const u = dataProfile.user;
-                setFirstName(u.first_name ?? "");
-                setLastName(u.last_name ?? "");
+                const fName = u.first_name ?? "";
+                const lName = u.last_name ?? "";
+                const aUrl = u.avatar_url ?? null;
+
+                setFirstName(fName);
+                setLastName(lName);
                 setMiddleName(u.middle_name ?? "");
                 setPhone(u.phone ?? "");
-                setAvatarUrl(u.avatar_url ?? null);
+                setAvatarUrl(aUrl);
 
-                // Профиль репетитора
                 if (role === "tutor") {
                     const resTutor = await fetch("/api/profile/tutor");
                     const dataTutor = await resTutor.json();
 
                     if (resTutor.ok) {
-                        setHeadline(dataTutor.headline ?? "");
-                        setSubjects(dataTutor.subjects ?? []);
-                        setEducation(dataTutor.education ?? "");
-                        setExperience(
+                        const hl = dataTutor.headline ?? "";
+                        const subs = dataTutor.subjects ?? [];
+                        const edu = dataTutor.education ?? "";
+                        const exp =
                             dataTutor.experience_years !== null &&
-                                dataTutor.experience_years !== undefined
+                            dataTutor.experience_years !== undefined
                                 ? String(dataTutor.experience_years)
-                                : "",
-                        );
-                        setHourlyRate(
-                            dataTutor.hourly_rate
-                                ? String(dataTutor.hourly_rate)
-                                : "",
-                        );
+                                : "";
+                        const rate = dataTutor.hourly_rate
+                            ? String(dataTutor.hourly_rate)
+                            : "";
+
+                        setHeadline(hl);
+                        setSubjects(subs);
+                        setEducation(edu);
+                        setExperience(exp);
+                        setHourlyRate(rate);
                         setProfileStatus(dataTutor.status ?? null);
                         setRejectionReason(dataTutor.rejection_reason ?? null);
+                        setSlug(dataTutor.slug ?? null);
+
+                        // Если всё уже заполнено в БД — считаем "сохранено"
+                        const ready = checkProfileReady({
+                            firstName: fName,
+                            lastName: lName,
+                            avatarUrl: aUrl,
+                            headline: hl,
+                            subjects: subs,
+                            education: edu,
+                            experience: exp,
+                            hourlyRate: rate,
+                        });
+                        setSaved(ready);
                     }
                 }
             } catch {
@@ -116,10 +157,14 @@ export default function ProfileTab({ email, role, userId }: Props) {
         load();
     }, [role]);
 
-    // ===== Subject handlers =====
-    function toggleSubject(subject: string) {
-        setError("");
+    function markDirty() {
+        setSaved(false);
         setSuccess("");
+        setError("");
+    }
+
+    function toggleSubject(subject: string) {
+        markDirty();
         setSubjects((prev) => {
             if (prev.includes(subject)) {
                 return prev.filter((s) => s !== subject);
@@ -153,19 +198,18 @@ export default function ProfileTab({ email, role, userId }: Props) {
             setError(`Максимум ${MAX_SUBJECTS} предметов`);
             return;
         }
+        markDirty();
         setSubjects((prev) => [...prev, value]);
         setCustomInput("");
         setShowCustomInput(false);
     }
 
-    // ===== Сохранение =====
     async function handleSave() {
         setError("");
         setSuccess("");
         setSaving(true);
 
         try {
-            // 1. Общие поля
             const resProfile = await fetch("/api/profile", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -184,7 +228,6 @@ export default function ProfileTab({ email, role, userId }: Props) {
                 return;
             }
 
-            // 2. Поля репетитора
             if (role === "tutor") {
                 const resTutor = await fetch("/api/profile/tutor", {
                     method: "POST",
@@ -205,16 +248,17 @@ export default function ProfileTab({ email, role, userId }: Props) {
                     return;
                 }
 
-                // Обновляем статус (мог сброситься в pending)
                 const resStatus = await fetch("/api/profile/tutor");
                 const dataStatus = await resStatus.json();
                 if (resStatus.ok) {
                     setProfileStatus(dataStatus.status ?? null);
                     setRejectionReason(dataStatus.rejection_reason ?? null);
+                    setSlug(dataStatus.slug ?? null);
                 }
             }
 
             setSuccess("Сохранено");
+            setSaved(true);
         } catch {
             setError("Ошибка сети");
         } finally {
@@ -223,6 +267,17 @@ export default function ProfileTab({ email, role, userId }: Props) {
     }
 
     const customSubjects = subjects.filter((s) => !PRESET_SUBJECTS.includes(s));
+
+    const profileReady = checkProfileReady({
+        firstName,
+        lastName,
+        avatarUrl,
+        headline,
+        subjects,
+        education,
+        experience,
+        hourlyRate,
+    });
 
     if (loading) {
         return (
@@ -233,17 +288,27 @@ export default function ProfileTab({ email, role, userId }: Props) {
     }
 
     return (
-        <div className="flex flex-col gap-[24px] max-w-[900px]">
-            {/* 1. Статус профиля */}
+        <div className="flex flex-col gap-[20px]">
             {role === "tutor" && (
                 <ProfileStatus
                     initialStatus={profileStatus}
                     rejectionReason={rejectionReason}
                     tutorId={userId}
+                    slug={slug}
+                    profileReady={profileReady && saved}
                 />
             )}
 
-            {/* 2. Персональная информация */}
+            {role === "tutor" && profileStatus === "approved" && slug && (
+                <ProfileLink
+                    slug={slug}
+                    baseUrl={
+                        process.env.NEXT_PUBLIC_SITE_URL ?? "https://ripit.by"
+                    }
+                />
+            )}
+
+            {/* 3. Персональная информация */}
             <div className="bg-white rounded-[24px] p-[32px]">
                 <h2 className="font-days text-[22px] text-black mb-[24px]">
                     Персональная информация
@@ -252,20 +317,23 @@ export default function ProfileTab({ email, role, userId }: Props) {
                 <div className="flex flex-col md:flex-row gap-[24px] items-start">
                     <AvatarUpload
                         currentUrl={avatarUrl}
-                        onChange={(url) => setAvatarUrl(url)}
+                        onChange={(url) => {
+                            setAvatarUrl(url);
+                            markDirty();
+                        }}
                     />
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-[12px] flex-1 w-full">
                         <div>
                             <label className="block text-[13px] text-darkGray mb-[6px]">
-                                Имя
+                                Имя <span className="text-red">*</span>
                             </label>
                             <input
                                 type="text"
                                 value={firstName}
                                 onChange={(e) => {
                                     setFirstName(e.target.value);
-                                    setSuccess("");
+                                    markDirty();
                                 }}
                                 maxLength={50}
                                 className="w-full px-[16px] py-[10px] rounded-[12px] border border-whiteTxt bg-white text-black focus:border-green outline-none transition-all"
@@ -273,14 +341,14 @@ export default function ProfileTab({ email, role, userId }: Props) {
                         </div>
                         <div>
                             <label className="block text-[13px] text-darkGray mb-[6px]">
-                                Фамилия
+                                Фамилия <span className="text-red">*</span>
                             </label>
                             <input
                                 type="text"
                                 value={lastName}
                                 onChange={(e) => {
                                     setLastName(e.target.value);
-                                    setSuccess("");
+                                    markDirty();
                                 }}
                                 maxLength={50}
                                 className="w-full px-[16px] py-[10px] rounded-[12px] border border-whiteTxt bg-white text-black focus:border-green outline-none transition-all"
@@ -295,7 +363,7 @@ export default function ProfileTab({ email, role, userId }: Props) {
                                 value={middleName}
                                 onChange={(e) => {
                                     setMiddleName(e.target.value);
-                                    setSuccess("");
+                                    markDirty();
                                 }}
                                 maxLength={50}
                                 placeholder="Ваше отчество"
@@ -306,7 +374,7 @@ export default function ProfileTab({ email, role, userId }: Props) {
                 </div>
             </div>
 
-            {/* 3. Контакты */}
+            {/* 4. Контакты */}
             <div className="bg-white rounded-[24px] p-[32px]">
                 <h2 className="font-days text-[22px] text-black mb-[24px]">
                     Контакты
@@ -337,7 +405,7 @@ export default function ProfileTab({ email, role, userId }: Props) {
                         value={phone}
                         onChange={(e) => {
                             setPhone(e.target.value);
-                            setSuccess("");
+                            markDirty();
                         }}
                         placeholder="+375 29 123-45-67"
                         maxLength={20}
@@ -349,12 +417,13 @@ export default function ProfileTab({ email, role, userId }: Props) {
                 </div>
             </div>
 
-            {/* 4. Преподаваемые дисциплины (только репетитор) */}
+            {/* 5. Преподаваемые дисциплины */}
             {role === "tutor" && (
                 <div className="bg-white rounded-[24px] p-[32px]">
                     <div className="flex items-center justify-between mb-[20px]">
                         <h2 className="font-days text-[22px] text-black">
-                            Преподаваемые дисциплины
+                            Преподаваемые дисциплины{" "}
+                            <span className="text-red">*</span>
                         </h2>
                         <span className="text-[12px] text-darkGray">
                             {subjects.length}/{MAX_SUBJECTS}
@@ -453,7 +522,7 @@ export default function ProfileTab({ email, role, userId }: Props) {
                 </div>
             )}
 
-            {/* 5. О себе (только репетитор) */}
+            {/* 6. О себе */}
             {role === "tutor" && (
                 <div className="bg-white rounded-[24px] p-[32px]">
                     <h2 className="font-days text-[22px] text-black mb-[24px]">
@@ -463,7 +532,7 @@ export default function ProfileTab({ email, role, userId }: Props) {
                     <div className="mb-[20px]">
                         <div className="flex justify-between items-baseline mb-[8px]">
                             <label className="text-[14px] text-black">
-                                Описание
+                                Описание <span className="text-red">*</span>
                             </label>
                             <span className="text-[12px] text-darkGray">
                                 {headline.length}/{MAX_HEADLINE_LENGTH}
@@ -473,7 +542,7 @@ export default function ProfileTab({ email, role, userId }: Props) {
                             value={headline}
                             onChange={(e) => {
                                 setHeadline(e.target.value);
-                                setSuccess("");
+                                markDirty();
                             }}
                             maxLength={MAX_HEADLINE_LENGTH}
                             rows={4}
@@ -485,7 +554,7 @@ export default function ProfileTab({ email, role, userId }: Props) {
                     <div className="mb-[20px]">
                         <div className="flex justify-between items-baseline mb-[8px]">
                             <label className="text-[14px] text-black">
-                                Образование
+                                Образование <span className="text-red">*</span>
                             </label>
                             <span className="text-[12px] text-darkGray">
                                 {education.length}/{MAX_EDUCATION_LENGTH}
@@ -495,7 +564,7 @@ export default function ProfileTab({ email, role, userId }: Props) {
                             value={education}
                             onChange={(e) => {
                                 setEducation(e.target.value);
-                                setSuccess("");
+                                markDirty();
                             }}
                             maxLength={MAX_EDUCATION_LENGTH}
                             rows={4}
@@ -506,7 +575,8 @@ export default function ProfileTab({ email, role, userId }: Props) {
 
                     <div>
                         <label className="block text-[14px] text-black mb-[8px]">
-                            Опыт преподавания (лет)
+                            Опыт преподавания (лет){" "}
+                            <span className="text-red">*</span>
                         </label>
                         <input
                             type="text"
@@ -516,7 +586,7 @@ export default function ProfileTab({ email, role, userId }: Props) {
                                 setExperience(
                                     e.target.value.replace(/\D/g, ""),
                                 );
-                                setSuccess("");
+                                markDirty();
                             }}
                             placeholder="0"
                             maxLength={2}
@@ -526,7 +596,7 @@ export default function ProfileTab({ email, role, userId }: Props) {
                 </div>
             )}
 
-            {/* 6. Цена (только репетитор) */}
+            {/* 7. Цена */}
             {role === "tutor" && (
                 <div className="bg-white rounded-[24px] p-[32px]">
                     <h2 className="font-days text-[22px] text-black mb-[24px]">
@@ -535,7 +605,8 @@ export default function ProfileTab({ email, role, userId }: Props) {
 
                     <div>
                         <label className="block text-[14px] text-black mb-[8px]">
-                            Цена за урок (BYN)
+                            Цена за урок (BYN){" "}
+                            <span className="text-red">*</span>
                         </label>
                         <input
                             type="text"
@@ -543,7 +614,7 @@ export default function ProfileTab({ email, role, userId }: Props) {
                             value={hourlyRate}
                             onChange={(e) => {
                                 setHourlyRate(e.target.value);
-                                setSuccess("");
+                                markDirty();
                             }}
                             placeholder="50"
                             maxLength={10}
@@ -569,11 +640,18 @@ export default function ProfileTab({ email, role, userId }: Props) {
             <button
                 type="button"
                 onClick={handleSave}
-                disabled={saving}
-                className="cursor-pointer w-full bg-green text-black pt-[14px] pb-[16px] rounded-[16px] font-medium hover:bg-[#c2e055] transition disabled:opacity-50"
+                disabled={saving || !profileReady}
+                className="cursor-pointer w-full bg-green text-black pt-[14px] pb-[16px] rounded-[16px] font-medium hover:bg-[#c2e055] transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
                 {saving ? "Сохранение..." : "Сохранить"}
             </button>
+
+            {!profileReady && (
+                <p className="text-darkGray text-[13px] text-center">
+                    Заполните обязательные поля: имя, фамилия, фото, описание,
+                    предметы, образование, опыт, цена
+                </p>
+            )}
         </div>
     );
 }

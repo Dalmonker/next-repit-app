@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import Image, { type StaticImageData } from "next/image";
 import Link from "next/link";
-import parrotImage from "@/assets/images/login/parrot-tablet.webp";
+import parrotDraft from "@/assets/images/profile/parrot-draft.webp";
+import parrotApproved from "@/assets/images/profile/parrot-approved.webp";
+import parrotPending from "@/assets/images/profile/parrot-pending.webp";
+import parrotRejected from "@/assets/images/profile/parrot-rejected.webp";
 
 type Status = "draft" | "pending" | "approved" | "rejected" | "hidden" | null;
 
@@ -11,12 +14,16 @@ type Props = {
     initialStatus: Status;
     rejectionReason: string | null;
     tutorId: number;
+    slug: string | null;
+    profileReady: boolean;
 };
 
 export default function ProfileStatus({
     initialStatus,
     rejectionReason,
     tutorId,
+    slug,
+    profileReady,
 }: Props) {
     const [status, setStatus] = useState<Status>(initialStatus);
     const [reason, setReason] = useState<string | null>(rejectionReason);
@@ -48,49 +55,35 @@ export default function ProfileStatus({
         }
     }
 
-    // Тексты и кнопки по статусу
-    const content = getContent(status, reason, tutorId);
+    const content = getContent(status, reason, tutorId, slug);
+    const parrot = getParrot(status);
+
+    const isSubmitButton = content.button && content.button.type === "button";
+    const isDisabled = isSubmitButton && (!profileReady || loading);
 
     return (
-        <div className="bg-white rounded-[24px] p-[32px] relative overflow-hidden">
-            <div className="flex items-start justify-between gap-[20px]">
-                <div className="flex-1 min-w-0">
-                    {/* Заголовок с иконкой */}
-                    <div className="flex items-center gap-[10px] mb-[12px]">
-                        <span className="flex items-center justify-center w-[24px] h-[24px] text-darkGray">
-                            <svg
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            >
-                                <path d="M12 20h9" />
-                                <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
-                            </svg>
-                        </span>
+        <div
+            className={`${content.bg} rounded-[30px] mt-[20px] relative overflow-hidden transition-colors ${content.minHeight} pt-[30px] pl-[30px] pr-[30px]`}
+        >
+            <div className="flex items-stretch gap-[30px]">
+                <div className="flex-1 pb-[30px]">
+                    <div className="flex items-center gap-[5px] mb-[18px]">
+                        <span>{content.icon}</span>
                         <h2 className="font-days text-[22px] text-black">
-                            Статус профиля
+                            {content.title}
                         </h2>
                     </div>
 
-                    {/* Текст */}
-                    <p className="text-darkGray text-[15px] leading-[1.5] mb-[20px] max-w-[440px]">
+                    <p className="text-gray text-[17px] mb-[26px]">
                         {content.text}
                     </p>
 
-                    {/* Причина отклонения */}
                     {status === "rejected" && reason && (
-                        <div className="bg-red/10 rounded-[12px] p-[12px] mb-[16px]">
-                            <p className="text-red text-[13px] font-medium mb-[4px]">
-                                Причина:
+                        <div className="bg-white rounded-[16px] p-[20px] mb-[26px]">
+                            <p className="text-black text-[17px] font-medium mb-[8px]">
+                                Причина
                             </p>
-                            <p className="text-black text-[13px] whitespace-pre-line">
-                                {reason}
-                            </p>
+                            <p className="text-gray text-[17px]">{reason}</p>
                         </div>
                     )}
 
@@ -98,14 +91,20 @@ export default function ProfileStatus({
                         <p className="text-red text-sm mb-[12px]">{error}</p>
                     )}
 
-                    {/* Кнопка */}
+                    {isSubmitButton && !profileReady && !loading && (
+                        <p className="text-darkGray text-[14px] mb-[12px]">
+                            Заполните все обязательные поля, чтобы отправить
+                            профиль на проверку
+                        </p>
+                    )}
+
                     {content.button && (
                         <>
                             {content.button.type === "link" ? (
                                 <Link
                                     href={content.button.href}
                                     target="_blank"
-                                    className="inline-block bg-green text-black px-[24px] py-[10px] rounded-full font-medium hover:bg-[#c2e055] transition text-[14px]"
+                                    className="inline-block bg-green text-black px-[26px] pt-[16px] pb-[17px] rounded-full font-medium text-[17px]"
                                 >
                                     {content.button.label}
                                 </Link>
@@ -113,8 +112,8 @@ export default function ProfileStatus({
                                 <button
                                     type="button"
                                     onClick={handleSubmit}
-                                    disabled={loading}
-                                    className="cursor-pointer bg-green text-black px-[24px] py-[10px] rounded-full font-medium hover:bg-[#c2e055] transition disabled:opacity-50 text-[14px]"
+                                    disabled={isDisabled}
+                                    className="cursor-pointer bg-green text-black px-[26px] pt-[16px] pb-[17px] rounded-full font-medium hover:bg-[#c2e055] transition disabled:opacity-40 disabled:cursor-not-allowed text-[17px]"
                                 >
                                     {loading
                                         ? "Отправка..."
@@ -125,28 +124,51 @@ export default function ProfileStatus({
                     )}
                 </div>
 
-                {/* Попугай — только для approved */}
-                {status === "approved" && (
-                    <div className="relative w-[140px] h-[140px] shrink-0 hidden md:block">
-                        <Image
-                            src={parrotImage}
-                            alt=""
-                            fill
-                            className="object-contain object-right"
-                        />
-                    </div>
-                )}
+                <div className="hidden md:flex items-end shrink-0">
+                    <Image
+                        src={parrot}
+                        alt=""
+                        className={`object-contain object-bottom w-auto h-auto ${content.parrotClass}`}
+                        priority
+                    />
+                </div>
             </div>
         </div>
     );
 }
 
 // ============================================================
-// Тексты и кнопки по статусу
+// Попугай по статусу
+// ============================================================
+
+function getParrot(status: Status): StaticImageData {
+    switch (status) {
+        case null:
+        case "draft":
+            return parrotDraft;
+        case "pending":
+            return parrotPending;
+        case "approved":
+            return parrotApproved;
+        case "rejected":
+            return parrotRejected;
+        case "hidden":
+        default:
+            return parrotDraft;
+    }
+}
+
+// ============================================================
+// Тексты, иконки, кнопки, фон, высота
 // ============================================================
 
 type Content = {
+    icon: string;
+    title: string;
     text: string;
+    bg: string;
+    minHeight: string;
+    parrotClass: string;
     button:
         | { type: "link"; href: string; label: string }
         | { type: "button"; label: string }
@@ -157,36 +179,65 @@ function getContent(
     status: Status,
     reason: string | null,
     tutorId: number,
+    slug: string | null,
 ): Content {
     switch (status) {
         case null:
         case "draft":
             return {
+                icon: "🖊️",
+                title: "Статус профиля",
                 text: "Заполните профиль, чтобы ученики могли найти вас. Мы проверим его в течение одного рабочего дня.",
+                bg: "bg-white",
+                minHeight: "min-h-[232px]",
+                parrotClass: "max-h-[202px]",
                 button: { type: "button", label: "Отправить на проверку" },
             };
         case "pending":
             return {
-                text: "Профиль на модерации. Обычно проверка занимает 1-2 рабочих дня. Мы уведомим вас по email.",
+                icon: "⏳",
+                title: "Профиль на проверке",
+                text: "Мы уже проверяем ваш профиль! Это займёт не более одного рабочего дня. Как только проверка завершится, мы уведомим вас по email.",
+                bg: "bg-yellow/40",
+                minHeight: "min-h-[232px]",
+                parrotClass: "max-h-[202px]",
                 button: null,
             };
         case "approved":
             return {
-                text: "Ваш профиль одобрен и виден в каталоге. Ученики могут отправлять вам заявки.",
+                icon: "✔️",
+                title: "Профиль одобрен",
+                text: "Ваш профиль уже в каталоге! Ученики могут отправлять вам заявки – следите за уведомлениями",
+                bg: "bg-[#F9FFE4]",
+                minHeight: "min-h-[232px]",
+                parrotClass: "max-h-[202px]",
                 button: {
                     type: "link",
-                    href: `/tutors/${tutorId}`,
+                    href: slug ? `/tutors/${slug}` : `/tutors/${tutorId}`,
                     label: "Открыть публичную страницу",
                 },
             };
         case "rejected":
             return {
-                text: "Заявка отклонена. Исправьте замечания и отправьте профиль повторно.",
-                button: { type: "button", label: "Подать снова" },
+                icon: "🚫",
+                title: "Профиль не прошел проверку",
+                text: "Пожалуйста, исправьте замечания, чтобы мы могли одобрить ваш профиль",
+                bg: "bg-redLight",
+                minHeight: "min-h-[260px]",
+                parrotClass: "max-h-[312px]",
+                button: {
+                    type: "button",
+                    label: "Отправить на проверку повторно",
+                },
             };
         case "hidden":
             return {
+                icon: "🙈",
+                title: "Профиль скрыт",
                 text: "Профиль скрыт администратором. Свяжитесь с поддержкой для уточнения причин.",
+                bg: "bg-violet",
+                minHeight: "min-h-[232px]",
+                parrotClass: "max-h-[202px]",
                 button: null,
             };
     }

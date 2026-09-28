@@ -2,7 +2,13 @@ import Link from "next/link";
 import Image from "next/image";
 import type { TutorListItem } from "@/lib/tutors";
 
-export default function TutorCard({ tutor }: { tutor: TutorListItem }) {
+export default function TutorCard({
+    tutor,
+    priority = false,
+}: {
+    tutor: TutorListItem;
+    priority?: boolean;
+}) {
     const fullName =
         [tutor.first_name, tutor.last_name].filter(Boolean).join(" ") ||
         "Репетитор";
@@ -10,9 +16,12 @@ export default function TutorCard({ tutor }: { tutor: TutorListItem }) {
     const visibleSubjects = tutor.subjects.slice(0, 3);
     const hasMore = tutor.subjects.length > 3;
 
+    // Ссылка на профиль: slug если есть, иначе id
+    const href = tutor.slug ? `/tutors/${tutor.slug}` : `/tutors/${tutor.id}`;
+
     return (
         <Link
-            href={`/tutors/${tutor.id}`}
+            href={href}
             className="group bg-white rounded-[24px] overflow-hidden hover:shadow-lg transition-shadow block"
         >
             {/* Фото + синий фон */}
@@ -23,7 +32,9 @@ export default function TutorCard({ tutor }: { tutor: TutorListItem }) {
                         alt={fullName}
                         fill
                         className="object-cover"
-                        sizes="(max-width: 768px) 100vw, 33vw"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        loading={priority ? "eager" : "lazy"}
+                        fetchPriority={priority ? "high" : "auto"}
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center text-white/60">

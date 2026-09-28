@@ -9,6 +9,9 @@ export type TutorProfileStatus =
 
 export type TutorProfileData = {
     status: TutorProfileStatus;
+    slug: string | null;
+    first_name: string | null;
+    last_name: string | null;
     subjects: string[];
     headline: string | null;
     hourly_rate: number | null;
@@ -33,8 +36,13 @@ export async function getTutorProfile(
     userId: number,
 ): Promise<TutorProfileData | null> {
     const [rows]: any = await pool.execute(
-        `SELECT status, subjects, headline, hourly_rate, experience_years, education, rejection_reason
-         FROM tutor_profiles WHERE user_id = ? LIMIT 1`,
+        `SELECT 
+            t.status, t.slug, t.subjects, t.headline, t.hourly_rate, 
+            t.experience_years, t.education, t.rejection_reason,
+            u.first_name, u.last_name
+         FROM tutor_profiles t
+         INNER JOIN users u ON u.id = t.user_id
+         WHERE t.user_id = ? LIMIT 1`,
         [userId],
     );
 
@@ -56,6 +64,9 @@ export async function getTutorProfile(
 
     return {
         status: r.status,
+        slug: r.slug ?? null,
+        first_name: r.first_name ?? null,
+        last_name: r.last_name ?? null,
         subjects,
         headline: r.headline ?? null,
         hourly_rate: r.hourly_rate != null ? Number(r.hourly_rate) : null,
@@ -103,8 +114,13 @@ export type SubmitResult = { ok: true } | { ok: false; error: string };
 
 export async function submitForReview(userId: number): Promise<SubmitResult> {
     const [rows]: any = await pool.execute(
-        `SELECT status, subjects, hourly_rate, education
-         FROM tutor_profiles WHERE user_id = ? LIMIT 1`,
+        `SELECT 
+            t.status, t.subjects, t.headline, t.hourly_rate, 
+            t.experience_years, t.education,
+            u.first_name, u.last_name, u.avatar_url
+         FROM tutor_profiles t
+         INNER JOIN users u ON u.id = t.user_id
+         WHERE t.user_id = ? LIMIT 1`,
         [userId],
     );
 
@@ -114,6 +130,7 @@ export async function submitForReview(userId: number): Promise<SubmitResult> {
 
     const profile = rows[0];
 
+    // Статус
     if (profile.status === "pending") {
         return { ok: false, error: "Профиль уже на модерации" };
     }
@@ -127,6 +144,25 @@ export async function submitForReview(userId: number): Promise<SubmitResult> {
         return { ok: false, error: "Нельзя отправить в текущем статусе" };
     }
 
+    // ФИО
+    if (!profile.first_name || !String(profile.first_name).trim()) {
+        return { ok: false, error: "Заполните имя в профиле" };
+    }
+    if (!profile.last_name || !String(profile.last_name).trim()) {
+        return { ok: false, error: "Заполните фамилию в профиле" };
+    }
+
+    // Аватар
+    if (!profile.avatar_url || !String(profile.avatar_url).trim()) {
+        return { ok: false, error: "Загрузите фото профиля" };
+    }
+
+    // Описание (headline)
+    if (!profile.headline || !String(profile.headline).trim()) {
+        return { ok: false, error: "Заполните описание" };
+    }
+
+    // Предметы
     let subjects: string[] = [];
     if (profile.subjects) {
         try {
@@ -136,13 +172,24 @@ export async function submitForReview(userId: number): Promise<SubmitResult> {
             subjects = [];
         }
     }
-
     if (subjects.length === 0) {
         return { ok: false, error: "Добавьте хотя бы один предмет" };
     }
+
+    // Опыт
+    if (
+        profile.experience_years == null ||
+        Number(profile.experience_years) < 0
+    ) {
+        return { ok: false, error: "Укажите опыт преподавания" };
+    }
+
+    // Цена
     if (profile.hourly_rate == null || Number(profile.hourly_rate) <= 0) {
         return { ok: false, error: "Укажите цену за урок" };
     }
+
+    // Образование
     if (!profile.education || !String(profile.education).trim()) {
         return { ok: false, error: "Заполните образование" };
     }
@@ -174,7 +221,6 @@ export function hasCriticalTutorChanges(
 ): boolean {
     if (!current) return false;
 
-    // subjects — массив, сравниваем через JSON
     if (
         incoming.subjects !== undefined &&
         JSON.stringify(incoming.subjects) !== JSON.stringify(current.subjects)
@@ -182,7 +228,6 @@ export function hasCriticalTutorChanges(
         return true;
     }
 
-    // headline
     if (
         incoming.headline !== undefined &&
         (incoming.headline || null) !== current.headline
@@ -190,7 +235,6 @@ export function hasCriticalTutorChanges(
         return true;
     }
 
-    // hourly_rate
     if (
         incoming.hourly_rate !== undefined &&
         incoming.hourly_rate !== current.hourly_rate
@@ -198,7 +242,6 @@ export function hasCriticalTutorChanges(
         return true;
     }
 
-    // experience_years
     if (
         incoming.experience_years !== undefined &&
         incoming.experience_years !== current.experience_years
@@ -206,7 +249,6 @@ export function hasCriticalTutorChanges(
         return true;
     }
 
-    // education
     if (
         incoming.education !== undefined &&
         (incoming.education || null) !== current.education
