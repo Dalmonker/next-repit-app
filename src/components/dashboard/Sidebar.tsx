@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Svg } from "@/components/Svg";
 
@@ -36,7 +37,13 @@ const SECONDARY = [
     },
 ];
 
-export default function Sidebar() {
+type Props = {
+    avatarUrl: string | null;
+    firstName: string;
+    role: "tutor" | "parent" | "student" | null;
+};
+
+export default function Sidebar({ avatarUrl, firstName, role }: Props) {
     const pathname = usePathname();
 
     function renderItem(item: {
@@ -113,13 +120,34 @@ export default function Sidebar() {
                 </nav>
 
                 <div className="mt-auto bg-white p-[7px] rounded-[30px] flex items-center gap-[12px]">
-                    <div className="w-[44px] h-[44px] rounded-full bg-violet shrink-0" />
+                    {avatarUrl ? (
+                        <Image
+                            src={avatarUrl}
+                            alt={firstName || "Аватар"}
+                            width={44}
+                            height={44}
+                            className="w-[44px] h-[44px] rounded-full object-cover shrink-0"
+                        />
+                    ) : (
+                        <div className="w-[44px] h-[44px] rounded-full bg-violet shrink-0 flex items-center justify-center text-[15px] font-medium text-darkGray">
+                            {firstName
+                                ? firstName.charAt(0).toUpperCase()
+                                : "?"}
+                        </div>
+                    )}
+
                     <div className="flex-1 min-w-0">
-                        <p className="text-[17px] font-medium text-black mb-[2px]">
-                            Дмитрий
+                        <p className="text-[17px] font-medium text-black mb-[2px] truncate">
+                            {firstName || "Пользователь"}
                         </p>
                         <p className="text-[13px] font-medium text-gray">
-                            Преподаватель
+                            {role === "tutor"
+                                ? "Преподаватель"
+                                : role === "student"
+                                  ? "Ученик"
+                                  : role === "parent"
+                                    ? "Родитель"
+                                    : ""}
                         </p>
                     </div>
                     <button

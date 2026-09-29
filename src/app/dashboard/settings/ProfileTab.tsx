@@ -11,7 +11,6 @@ import {
     formatPhoneDigits,
     normalizePhone,
     phoneFromDb,
-    isValidBelarusPhone,
 } from "@/lib/phone";
 
 const PRESET_SUBJECTS = [
@@ -54,7 +53,6 @@ function checkProfileReady(data: {
     subjects: string[];
     education: string;
     experience: string;
-    hourlyRate: string;
 }): boolean {
     return (
         data.firstName.trim().length > 0 &&
@@ -63,9 +61,7 @@ function checkProfileReady(data: {
         data.headline.trim().length > 0 &&
         data.subjects.length > 0 &&
         data.education.trim().length > 0 &&
-        data.experience.trim() !== "" &&
-        data.hourlyRate.trim() !== "" &&
-        Number(data.hourlyRate) > 0
+        data.experience.trim() !== ""
     );
 }
 
@@ -80,7 +76,6 @@ export default function ProfileTab({ email, role, userId }: Props) {
     const [subjects, setSubjects] = useState<string[]>([]);
     const [education, setEducation] = useState("");
     const [experience, setExperience] = useState("");
-    const [hourlyRate, setHourlyRate] = useState("");
     const [customInput, setCustomInput] = useState("");
     const [showCustomInput, setShowCustomInput] = useState(false);
 
@@ -129,15 +124,11 @@ export default function ProfileTab({ email, role, userId }: Props) {
                             dataTutor.experience_years !== undefined
                                 ? String(dataTutor.experience_years)
                                 : "";
-                        const rate = dataTutor.hourly_rate
-                            ? String(dataTutor.hourly_rate)
-                            : "";
 
                         setHeadline(hl);
                         setSubjects(subs);
                         setEducation(edu);
                         setExperience(exp);
-                        setHourlyRate(rate);
                         setProfileStatus(dataTutor.status ?? null);
                         setRejectionReason(dataTutor.rejection_reason ?? null);
                         setSlug(dataTutor.slug ?? null);
@@ -151,7 +142,6 @@ export default function ProfileTab({ email, role, userId }: Props) {
                             subjects: subs,
                             education: edu,
                             experience: exp,
-                            hourlyRate: rate,
                         });
                         setSaved(ready);
                     }
@@ -246,7 +236,6 @@ export default function ProfileTab({ email, role, userId }: Props) {
                         subjects,
                         education,
                         experience_years: experience || null,
-                        hourly_rate: hourlyRate || null,
                     }),
                 });
 
@@ -285,7 +274,6 @@ export default function ProfileTab({ email, role, userId }: Props) {
         subjects,
         education,
         experience,
-        hourlyRate,
     });
 
     if (loading) {
@@ -435,6 +423,7 @@ export default function ProfileTab({ email, role, userId }: Props) {
                 </div>
             </div>
 
+            {/* 5. Преподаваемые дисциплины */}
             {role === "tutor" && (
                 <div className="bg-white rounded-[24px] p-[32px]">
                     <div className="flex items-center justify-between mb-[20px]">
@@ -447,7 +436,6 @@ export default function ProfileTab({ email, role, userId }: Props) {
                         </span>
                     </div>
 
-                    {/* Пресеты + свои + кнопка "Добавить" в одном flex */}
                     <div className="flex flex-wrap gap-[10px] mb-[16px]">
                         {PRESET_SUBJECTS.map((subject) => {
                             const isSelected = subjects.includes(subject);
@@ -468,7 +456,6 @@ export default function ProfileTab({ email, role, userId }: Props) {
                             );
                         })}
 
-                        {/* Свои предметы — как теги (с ×) */}
                         {customSubjects.map((subject) => (
                             <span
                                 key={subject}
@@ -486,7 +473,6 @@ export default function ProfileTab({ email, role, userId }: Props) {
                             </span>
                         ))}
 
-                        {/* Кнопка "Добавить свой предмет" — как preset-кнопка */}
                         {!showCustomInput && (
                             <button
                                 type="button"
@@ -501,7 +487,6 @@ export default function ProfileTab({ email, role, userId }: Props) {
                         )}
                     </div>
 
-                    {/* Если открыт input — показываем его под кнопками */}
                     {showCustomInput && (
                         <div className="flex gap-[8px]">
                             <input
@@ -614,34 +599,6 @@ export default function ProfileTab({ email, role, userId }: Props) {
                 </div>
             )}
 
-            {/* 7. Цена */}
-            {role === "tutor" && (
-                <div className="bg-white rounded-[24px] p-[30px] pb-[34px]">
-                    <h2 className="font-days text-[22px] text-black mb-[20px]">
-                        Стоимость занятий
-                    </h2>
-
-                    <div>
-                        <label className="block text-[17px] text-gray mb-[12px]">
-                            Цена за урок (BYN){" "}
-                            <span className="text-red">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            inputMode="decimal"
-                            value={hourlyRate}
-                            onChange={(e) => {
-                                setHourlyRate(e.target.value);
-                                markDirty();
-                            }}
-                            placeholder="50"
-                            maxLength={10}
-                            className="w-full px-[21px] pt-[16px] pb-[18px] rounded-full border border-violet bg-white text-black placeholder:text-clue focus:border-green outline-none transition-all"
-                        />
-                    </div>
-                </div>
-            )}
-
             {/* Сообщения */}
             {error && (
                 <div className="bg-red/10 text-red rounded-[12px] p-[16px] text-[14px]">
@@ -667,7 +624,7 @@ export default function ProfileTab({ email, role, userId }: Props) {
             {!profileReady && (
                 <p className="text-darkGray text-[13px] text-center">
                     Заполните обязательные поля: имя, фамилия, фото, описание,
-                    предметы, образование, опыт, цена
+                    предметы, образование, опыт
                 </p>
             )}
 

@@ -12,7 +12,7 @@ export default function DeleteAccountBlock() {
     return (
         <>
             {/* Блок-предупреждение */}
-            <div className="bg-blue rounded-[30px] p-[30px] pb-[34px] flex flex-col md:flex-row md:items-center md:justify-between gap-[20px]">
+            <div className="bg-redLight rounded-[30px] p-[30px] pb-[34px] flex flex-col md:flex-row md:items-center md:justify-between gap-[20px]">
                 <div>
                     <h2 className="font-days text-[22px] text-black mb-[20px] flex items-center gap-[8px]">
                         <span className="text-[22px]">❗</span>

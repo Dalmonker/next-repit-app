@@ -17,8 +17,8 @@ type TabId = "profile" | "lessons" | "notifications" | "payments";
 const TABS: { id: TabId; label: string }[] = [
     { id: "profile", label: "Профиль" },
     { id: "lessons", label: "Уроки" },
-    { id: "notifications", label: "Уведомления" },
     { id: "payments", label: "Платежи" },
+    { id: "notifications", label: "Уведомления и рассылки" },
 ];
 
 export default function SettingsClient({ email, role, userId }: Props) {
@@ -26,7 +26,7 @@ export default function SettingsClient({ email, role, userId }: Props) {
 
     return (
         <>
-            <h1 className="font-days text-[36px] text-black m-[0px]">
+            <h1 className="font-days text-[36px] text-black m-[0px] mb-[20px]">
                 Настройки
             </h1>
 
@@ -39,10 +39,10 @@ export default function SettingsClient({ email, role, userId }: Props) {
                             key={tab.id}
                             type="button"
                             onClick={() => setActiveTab(tab.id)}
-                            className={`cursor-pointer px-[20px] py-[10px] rounded-full text-[14px] font-medium transition ${
+                            className={`cursor-pointer px-[20px] py-[10px] rounded-full text-[17px] font-medium transition ${
                                 isActive
                                     ? "bg-[#2E2A45] text-white"
-                                    : "bg-white text-darkGray hover:text-black"
+                                    : "bg-white text-gray hover:text-black"
                             }`}
                         >
                             {tab.label}

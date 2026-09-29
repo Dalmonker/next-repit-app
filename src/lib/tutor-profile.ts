@@ -115,11 +115,13 @@ export type SubmitResult = { ok: true } | { ok: false; error: string };
 export async function submitForReview(userId: number): Promise<SubmitResult> {
     const [rows]: any = await pool.execute(
         `SELECT 
-            t.status, t.subjects, t.headline, t.hourly_rate, 
+            t.status, t.subjects, t.headline, 
             t.experience_years, t.education,
-            u.first_name, u.last_name, u.avatar_url
+            u.first_name, u.last_name, u.avatar_url,
+            ls.price_individual, ls.price_group
          FROM tutor_profiles t
          INNER JOIN users u ON u.id = t.user_id
+         LEFT JOIN tutor_lesson_settings ls ON ls.user_id = t.user_id
          WHERE t.user_id = ? LIMIT 1`,
         [userId],
     );
@@ -184,14 +186,23 @@ export async function submitForReview(userId: number): Promise<SubmitResult> {
         return { ok: false, error: "Укажите опыт преподавания" };
     }
 
-    // Цена
-    if (profile.hourly_rate == null || Number(profile.hourly_rate) <= 0) {
-        return { ok: false, error: "Укажите цену за урок" };
-    }
-
     // Образование
     if (!profile.education || !String(profile.education).trim()) {
         return { ok: false, error: "Заполните образование" };
+    }
+
+    // Цена — хотя бы одна из двух
+    const hasIndividual =
+        profile.price_individual != null &&
+        Number(profile.price_individual) > 0;
+    const hasGroup =
+        profile.price_group != null && Number(profile.price_group) > 0;
+
+    if (!hasIndividual && !hasGroup) {
+        return {
+            ok: false,
+            error: "Укажите цену хотя бы за один формат занятий (в настройках «Уроки»)",
+        };
     }
 
     const [result]: any = await pool.execute(

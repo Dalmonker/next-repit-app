@@ -1,6 +1,51 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getLessonSettings, upsertLessonSettings } from "@/lib/lesson-settings";
+import { resetToPendingIfApproved } from "@/lib/tutor-profile";
+
+// ============================================================
+// Критичные поля (влияют на публичный профиль)
+// ============================================================
+
+type CriticalLessonFields = {
+    free_trial?: boolean;
+    price_individual?: number | null;
+    price_group?: number | null;
+};
+
+function hasCriticalLessonChanges(
+    current: {
+        free_trial: boolean;
+        price_individual: number | null;
+        price_group: number | null;
+    } | null,
+    incoming: CriticalLessonFields,
+): boolean {
+    if (!current) return false;
+
+    if (
+        incoming.free_trial !== undefined &&
+        incoming.free_trial !== current.free_trial
+    ) {
+        return true;
+    }
+
+    if (
+        incoming.price_individual !== undefined &&
+        incoming.price_individual !== current.price_individual
+    ) {
+        return true;
+    }
+
+    if (
+        incoming.price_group !== undefined &&
+        incoming.price_group !== current.price_group
+    ) {
+        return true;
+    }
+
+    return false;
+}
 
 // ============================================================
 // GET — получить настройки уроков
@@ -24,7 +69,6 @@ export async function GET() {
 
         const settings = await getLessonSettings(session.userId);
 
-        // Если записей нет — возвращаем дефолт
         if (!settings) {
             return NextResponse.json({
                 free_trial: false,
@@ -68,12 +112,10 @@ export async function POST(request: Request) {
         // === Валидация тела ===
         const input: any = {};
 
-        // free_trial
         if (body.free_trial !== undefined) {
             input.free_trial = Boolean(body.free_trial);
         }
 
-        // price_individual — null, "" или число
         if (body.price_individual !== undefined) {
             if (
                 body.price_individual === null ||
@@ -85,7 +127,6 @@ export async function POST(request: Request) {
             }
         }
 
-        // price_group
         if (body.price_group !== undefined) {
             if (body.price_group === null || body.price_group === "") {
                 input.price_group = null;
@@ -94,25 +135,31 @@ export async function POST(request: Request) {
             }
         }
 
-        // start_interval
         if (body.start_interval !== undefined) {
             input.start_interval = String(body.start_interval);
         }
 
-        // default_duration
         if (body.default_duration !== undefined) {
             input.default_duration = String(body.default_duration);
         }
 
-        // min_time_before
         if (body.min_time_before !== undefined) {
             input.min_time_before = String(body.min_time_before);
         }
 
+        // === Читаем текущее состояние ДО обновления ===
+        const current = await getLessonSettings(session.userId);
+
+        // === Обновляем ===
         const result = await upsertLessonSettings(session.userId, input);
 
         if (!result.ok) {
             return NextResponse.json({ error: result.error }, { status: 400 });
+        }
+
+        // === Сброс в pending, если были критичные изменения и был approved ===
+        if (hasCriticalLessonChanges(current, input)) {
+            await resetToPendingIfApproved(session.userId);
         }
 
         return NextResponse.json({ success: true });
